@@ -7,32 +7,32 @@ export default function FAQ() {
 
   const faqs: FAQItem[] = [
     {
-      question: "Vad ingår i flyttstädningen?",
-      answer: "En komplett flyttstädning omfattar grundlig rengöring av alla rum, inklusive fönsterputsning, rengöring bakom spisar och kylskåp, avtorkning av fast inredning samt städning av badrum och kök in i minsta detalj. Vi städar efter en noggrann checklista godkänd av hyresvärdar och mäklare."
+      question: "Vad ingår i en flyttstädning?",
+      answer: "Vår flyttstädning följer mäklarnas och hyresvärdarnas officiella kontrollista. I vårt fasta pris ingår städning av alla rum, kök (rengöring av ugn, spishäll, kyl, frys in- och utvändigt, köksfläkt), badrum (avkalkning, rengöring av kakel & golvbrunn), samt komplett fönsterputsning (in- och utsida)."
     },
     {
-      question: "Erbjuder ni nöjd-kund-garanti?",
-      answer: "Ja, vi erbjuder alltid en generös nöjd-kund-garanti på vår flyttstädning. Det innebär att vi garanterar att städningen blir godkänd vid besiktningen, och skulle det mot förmodan finnas några anmärkningar åtgärdar vi dem kostnadsfritt inom kortast möjliga tid."
+      question: "Vad innebär er 100% besiktningsgaranti?",
+      answer: "Besiktningsgarantin innebär att om köparen, hyresvärden eller mäklaren mot förmodan anmärker på något vid avflyttningsbesiktningen, åtgärdar vi anmärkningen kostnadsfritt omgående. Du kan tryggt lämna över nycklarna."
     },
     {
-      question: "Hur lång tid tar en flyttstädning?",
-      answer: "Det beror helt på bostadens storlek och skick. Vanligtvis tar en mindre lägenhet ca 4–6 timmar, medan en större villa kan ta en hel dag för vårt städteam att slutföra. Vi arbetar alltid effektivt för att säkerställa högsta kvalitet."
+      question: "Behöver jag vara hemma under flyttstädningen?",
+      answer: "Nej, du behöver inte vara hemma. De flesta av våra kunder lämnar över nyckeln i förväg, via nyckelgömma eller kod. När städningen är slutförd låser vi och meddelar dig."
     },
     {
-      question: "Kan jag boka flyttstädning med kort varsel?",
-      answer: "Ja, vi gör alltid vårt yttersta för att tillgodose akuta bokningar, särskilt i slutet och början av månaden. Kontakta oss så snart som möjligt, så ser vi till att hitta en tid som passar ditt flyttschema."
+      question: "Hur fungerar RUT-avdraget för flyttstädning?",
+      answer: "Du får 50% skatterabatt på arbetskostnaden via RUT-avdraget. Vi drar av beloppet direkt på fakturan och sköter all kontakt och administration med Skatteverket."
     },
     {
-      question: "Ingår fönsterputsning i priset?",
-      answer: "Ja, fönsterputsning ingår alltid kostnadsfritt i vår flyttstädning. Vi putsar dina fönster på alla sidor för att säkerställa att hela bostaden är redo för nästa hyresgäst eller köpare."
+      question: "Ingår fönsterputs och rengöring av ugn/kyl?",
+      answer: "Ja! I vårt fasta pris ingår både fönsterputsning (både in- och utsida) samt grundlig ur- och invändig rengöring av ugn, kylskåp, frys och köksfläkt utan dolda avgifter."
     },
     {
-      question: "Vad händer om hyresvärden eller mäklaren inte godkänner städningen vid besiktning?",
-      answer: "Om hyresvärden eller köparen har några anmärkningar vid besiktningen kontaktar du oss direkt. Vi skickar omgående tillbaka vårt team för att åtgärda eventuella brister helt utan extra kostnad under vår nöjd-kund-garanti."
+      question: "Hur långt i förväg behöver jag boka mitt städdatum?",
+      answer: "Vi rekommenderar att boka 1-2 veckor i förväg för att säkra önskad dag vid skiftande månadsskiften. Har du bråttom kan vi ofta ordna akut flyttstädning med kort varsel."
     },
     {
-      question: "Hur fungerar RUT-avdraget vid flyttstädning?",
-      answer: "RUT-avdraget ger dig 50% rabatt på arbetskostnaden för flyttstädningen. Vi drar av rabatten direkt på fakturan och sköter all administration och rapportering till Skatteverket, så att du bara betalar hälften av priset."
+      question: "Vad behöver jag förbereda innan ni kommer?",
+      answer: "Bostaden ska vara tömd på möbler och kartonger. Se till att el och varmvatten är påslaget samt att frysen är avfrostad i förväg."
     }
   ];
 
@@ -41,14 +41,14 @@ export default function FAQ() {
   };
 
   return (
-    <section className="py-20 bg-[#FAFAF8] border-b border-gray-200" id="faq-section">
+    <section className="py-12 md:py-16 bg-slate-50 border-b border-gray-200/80" id="faq-section">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-[560px] mx-auto mb-12">
-          <h2 className="text-[30px] font-bold tracking-tight text-[#1C2833] font-display">
+        <div className="text-center max-w-[560px] mx-auto mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1C2833] font-display">
             Vanliga frågor och svar
           </h2>
-          <p className="mt-4 text-[16px] text-[#5D6D7E] text-center">
-            Här har vi samlat de vanligaste frågorna våra kunder brukar ha. Hittar du inte svaret du söker är du varmt välkommen att ringa oss.
+          <p className="mt-2 text-xs sm:text-sm text-[#5D6D7E] text-center">
+            Här hittar du svar på de vanligaste frågorna inför din bokning.
           </p>
         </div>
 

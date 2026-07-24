@@ -12,17 +12,17 @@ export default function ServiceArea({ currentCityName }: ServiceAreaProps) {
   ];
 
   return (
-    <section className="py-20 bg-white border-b border-gray-200" id="service-area-section">
+    <section className="py-12 md:py-16 bg-white border-b border-gray-200/80" id="service-area-section">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-[560px] mx-auto mb-10">
-          <div className="inline-flex p-3 bg-red-50 rounded-full mb-3 border border-red-100">
-            <MapPin className="w-6 h-6 text-brand" />
+        <div className="text-center max-w-[560px] mx-auto mb-8">
+          <div className="inline-flex p-2.5 bg-red-50 rounded-full mb-2.5 border border-red-100">
+            <MapPin className="w-5 h-5 text-brand" />
           </div>
-          <h2 className="text-[30px] font-bold tracking-tight text-[#1C2833] font-display mb-3">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1C2833] font-display mb-2">
             Vi utför städning i {currentCityName ? currentCityName : "din region"}
           </h2>
-          <p className="text-[16px] text-[#5D6D7E] text-center">
-            Vi städar i {currentCityName ? `${currentCityName} kommun samt alla närliggande orter` : "södra och västra Götaland"}. Se vårt fullständiga täckningsområde nedan.
+          <p className="text-xs sm:text-sm text-[#5D6D7E] text-center">
+            Vi utför flyttstädning i Borås, Värnamo, Gnosjö och omkringliggande områden.
           </p>
         </div>
 

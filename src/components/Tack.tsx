@@ -14,7 +14,7 @@ export default function Tack({ serviceType, cityName, onGoBack }: TackProps) {
     win.dataLayer = win.dataLayer || [];
     win.dataLayer.push({
       event: 'generate_lead',
-      service: serviceType || 'Hemstädning',
+      service: serviceType || 'Flyttstädning',
       city: cityName || 'Borås',
       timestamp: new Date().toISOString()
     });
@@ -29,11 +29,11 @@ export default function Tack({ serviceType, cityName, onGoBack }: TackProps) {
   }, [serviceType, cityName]);
 
   const readableService = {
-    hem: "Hemstädning",
     flytt: "Flyttstädning",
+    hem: "Hemstädning",
     djup: "Djupstädning",
     kontor: "Kontorsstädning"
-  }[serviceType] || serviceType || "Hemstädning";
+  }[serviceType] || serviceType || "Flyttstädning";
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]" id="tack-view">

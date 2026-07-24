@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Star, CheckCircle2, Phone } from 'lucide-react';
 import CalculatorForm from './CalculatorForm';
+import heroBgImg from '../assets/images/hero_clean_apartment_1784931370243.jpg';
 
 interface HeroProps {
   currentCityName: string;
@@ -17,11 +18,7 @@ export default function Hero({
   onScrollToForm,
   onSubmitSuccess
 }: HeroProps) {
-  const [bgImage, setBgImage] = useState<string>('');
-
-  const heroBgs = [
-    "https://stadochtradgard.se/wp-content/uploads/2025/11/1.jpeg"
-  ];
+  const [bgImage, setBgImage] = useState<string>(heroBgImg);
 
   useEffect(() => {
     // Check if there is an explicit ?hero=1/2/3 parameter
@@ -29,9 +26,9 @@ export default function Hero({
     const heroOverride = params.get('hero');
     
     if (heroOverride && ['1', '2', '3'].includes(heroOverride)) {
-      setBgImage(heroBgs[0]);
+      setBgImage(heroBgImg);
     } else {
-      setBgImage(heroBgs[0]);
+      setBgImage(heroBgImg);
     }
   }, []);
 
@@ -45,8 +42,8 @@ export default function Hero({
         ></div>
       )}
       
-      {/* Dark overlay with exact 50% opacity for optimal text readability */}
-      <div className="absolute inset-0 z-10 bg-black/50" id="hero-overlay"></div>
+      {/* Dark overlay for optimal contrast and readability */}
+      <div className="absolute inset-0 z-10 bg-black/70" id="hero-overlay"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-20 relative text-white">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
@@ -69,7 +66,7 @@ export default function Hero({
             >
               {currentCityName ? (
                 <>
-                  Professionell {currentServiceLabel.toLowerCase()} i <span className="relative text-white px-4 py-1 whitespace-nowrap inline-block font-black align-middle mx-1 md:mx-1.5">
+                  Professionell flyttstädning i <span className="relative text-white px-4 py-1 whitespace-nowrap inline-block font-black align-middle mx-1 md:mx-1.5">
                     <span data-city>{currentCityName}</span>
                     <svg 
                       className="absolute inset-0 w-full h-full text-brand fill-current -z-10 select-none pointer-events-none scale-y-110 scale-x-105" 
@@ -95,27 +92,27 @@ export default function Hero({
                         style={{ filter: 'url(#paint-turb)' }} 
                       />
                     </svg>
-                  </span> &mdash; fastpris med nöjd-kund-garanti
+                  </span> &mdash; fast pris med garanti
                 </>
               ) : (
                 <>
-                  Professionell {currentServiceLabel.toLowerCase()} nära dig &mdash; fastpris med nöjd-kund-garanti
+                  Professionell flyttstädning med garanti &mdash; fast pris online
                 </>
               )}
             </h1>
 
             {/* Supporting trusted sub-headline */}
             <p className="text-lg md:text-xl text-gray-100 font-medium max-w-2xl">
-              Försäkrade städare &middot; Fönsterputsning ingår alltid &middot; Generös nöjd-kund-garanti. Vi säkrar din slutbesiktning.
+              Godkänd enligt mäklarens & hyresvärdens checklista &middot; Fast pris &middot; Full städgaranti & RUT-avdrag direkt.
             </p>
 
             {/* Above fold trust ticks checklist */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2" id="hero-feature-checks">
               {[
-                "Ansvarsförsäkrade",
+                "100% Besiktningsgaranti",
                 "RUT-avdrag Direkt (Du Betalar 50%)",
-                "Schyssta Villkor & Kollektivavtal",
-                "Nöjd-kund-garanti vid besiktning"
+                "Godkänd Enligt Mäklarens Checklista",
+                "Fast Pris Inkl. Fönsterputs & Ugn/Kyl"
               ].map((tick, idx) => (
                 <div key={idx} className="flex items-center gap-2 text-sm font-semibold text-gray-50 bg-white/5 backdrop-blur-xs rounded-xl py-2 px-3 border border-white/10 shadow-xs">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-400/10 flex-shrink-0" />

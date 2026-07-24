@@ -11,7 +11,7 @@ export default function Footer({ onPrivacyClick }: FooterProps) {
           <div>
             <h3 className="text-white text-lg font-bold font-display mb-3">Städ & Trädgårdsservice AB</h3>
             <p className="text-gray-400 text-sm max-w-sm leading-relaxed mb-4">
-              Professionell städservice och trygg hemstädning sedan 1998. Vi levererar förstklassig omsorg för ditt hem med full ansvarsförsäkring och nöjd-kund-garanti.
+              Professionell flyttstädning och städservice sedan 1998. Vi levererar förstklassig omsorg för ditt hem med full ansvarsförsäkring och 100% besiktningsgaranti.
             </p>
             <div className="text-xs text-gray-500 font-mono">
               Org.nr: 559139-4704 | Godkänd för F-skatt

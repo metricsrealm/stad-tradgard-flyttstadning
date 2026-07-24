@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Loader2, Mail, User, Info, Phone } from 'lucide-react';
+import { Check, Loader2, Mail, User, Phone, CheckCircle2 } from 'lucide-react';
+import { DatePicker } from './DatePicker';
+import { CityCombobox } from './CityCombobox';
 import type { FormValues } from '../types';
 
 interface CalculatorFormProps {
@@ -35,7 +37,6 @@ const pushLeadToDataLayer = (
     const firstName = parts[0] || '';
     const lastName = parts.slice(1).join(' ') || '';
 
-    // Standard format for Google Ads Enhanced Conversions via dataLayer
     dataLayer.push({
       event: 'generate_lead',
       user_data: {
@@ -51,7 +52,7 @@ const pushLeadToDataLayer = (
         service_type: 'Flyttstädning',
         square_meter: sqmVal || '',
         city: cityVal || '',
-        frequency: freqVal || ''
+        frequency: freqVal || 'Engångsstädning'
       }
     });
     console.log("Tracked 'generate_lead' event in dataLayer with user_data:", {
@@ -69,7 +70,7 @@ const pushLeadToDataLayer = (
   }
 };
 
-// Helper to submit the lead data with robust fallback for static hosting like Cloudflare Pages
+// Helper to submit the lead data with robust fallback
 const submitLeadToCRM = async (payload: FormValues) => {
   console.log("Attempting CRM submission via proxy...", payload);
   try {
@@ -103,7 +104,6 @@ const submitLeadToCRM = async (payload: FormValues) => {
       }
     });
 
-    // Use mode: "no-cors" to bypass CORS preflight blocking
     await fetch("https://stadochtradgard.se/calculator_submit.php", {
       method: "POST",
       mode: "no-cors",
@@ -113,7 +113,7 @@ const submitLeadToCRM = async (payload: FormValues) => {
       body: params
     });
 
-    console.log("Direct fallback POST completed successfully (opaque response).");
+    console.log("Direct fallback POST completed successfully.");
     return { success: true, fallback: true };
   } catch (fallbackErr) {
     console.error("Direct CRM fallback POST failed:", fallbackErr);
@@ -122,7 +122,7 @@ const submitLeadToCRM = async (payload: FormValues) => {
 };
 
 export default function CalculatorForm({ initialService, initialCity, onSubmitSuccess }: CalculatorFormProps) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
 
   // Cached UTM / Gclid params on load
   const [utmParams, setUtmParams] = useState<{ [key: string]: string }>({});
@@ -140,23 +140,26 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
   // Form State
   const [serviceType, setServiceType] = useState<string>('flytt');
   const [squareMeter, setSquareMeter] = useState<string>('');
-  const [antalRum, setAntalRum] = useState<string>('3');
   const [city, setCity] = useState<string>(initialCity !== undefined ? initialCity : (getCityFromURL() || ''));
-  const [sprojsadeFonster, setSprojsadeFonster] = useState<boolean>(false);
-  const [inglasadAltan, setInglasadAltan] = useState<boolean>(false);
-  const frequency = 'Flyttstädning' + (sprojsadeFonster ? ' (spröjsade fönster)' : '') + (inglasadAltan ? ' (inglasad altan)' : '');
 
+  // Add-ons
+  const [sprojsFonster, setSprojsFonster] = useState<boolean>(false);
+  const [inglasadAltan, setInglasadAltan] = useState<boolean>(false);
+
+  // Customer contact info & preferences
   const [name, setName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
+  const [cleaningDate, setCleaningDate] = useState<string>('');
+  const [message, setMessage] = useState<string>('');
 
   // Field errors
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasFiredLeadEvent, setHasFiredLeadEvent] = useState<boolean>(false);
 
-  // Step 3 animation words state
-  const [loadingWord, setLoadingWord] = useState<string>('Beräknar ditt pris...');
+  // Step 4 animation words state
+  const [loadingWord, setLoadingWord] = useState<string>('Beräknar ditt fasta pris...');
 
   // Sync initial values when dynamic routing triggers route updates
   useEffect(() => {
@@ -172,13 +175,67 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
     }
   }, [initialCity]);
 
-  // Handle Step 1 Submit
+  // Calculate Flyttstädning price according to exact table & interpolation rule
+  const calculateFlyttPrice = () => {
+    const table = [
+      { maxSqm: 30, price: 1500 },
+      { maxSqm: 50, price: 1900 },
+      { maxSqm: 60, price: 2000 },
+      { maxSqm: 70, price: 2500 },
+      { maxSqm: 80, price: 3000 },
+      { maxSqm: 90, price: 3200 },
+      { maxSqm: 100, price: 3500 },
+      { maxSqm: 110, price: 3900 },
+      { maxSqm: 120, price: 4100 },
+      { maxSqm: 130, price: 4500 },
+      { maxSqm: 140, price: 4700 },
+      { maxSqm: 150, price: 4900 },
+      { maxSqm: 160, price: 5400 },
+      { maxSqm: 170, price: 5900 },
+      { maxSqm: 180, price: 6400 },
+      { maxSqm: 190, price: 6600 },
+      { maxSqm: 200, price: 7200 },
+    ];
+
+    const sqmNumeric = parseInt(squareMeter) || 70;
+    
+    let basePrice = 2500;
+    if (sqmNumeric > 200) {
+      const extraSqm = sqmNumeric - 200;
+      basePrice = 7200 + Math.ceil(extraSqm / 10) * 350;
+    } else {
+      const match = table.find(item => sqmNumeric <= item.maxSqm);
+      if (match) {
+        basePrice = match.price;
+      } else {
+        basePrice = 7200;
+      }
+    }
+
+    // Add-on pricing logic (applied internally without displaying breakdowns)
+    if (sprojsFonster) basePrice += 300;
+    if (inglasadAltan) basePrice += 500;
+
+    return {
+      priceAfterRUT: basePrice,
+      priceBeforeRUT: basePrice * 2,
+      formattedPrice: `${basePrice.toLocaleString('sv-SE')} kr`,
+      sqmUsed: sqmNumeric
+    };
+  };
+
+  const flyttPriceInfo = calculateFlyttPrice();
+
+  // Handle Step 1 Submit (Bostad)
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: { [key: string]: string } = {};
 
+    if (!squareMeter || parseInt(squareMeter) <= 0) {
+      newErrors.squareMeter = "Ange bostadsyta (kvm)";
+    }
     if (!city.trim()) {
-      newErrors.city = "Stad fält krävs";
+      newErrors.city = "Stad krävs";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -190,24 +247,24 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
     setStep(2);
   };
 
-  // Handle Step 2 Submit
-  const handleStep2Submit = async (e: React.FormEvent) => {
+  // Handle Step 2 Submit (Kontakt)
+  const handleStep2Submit = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: { [key: string]: string } = {};
 
     if (!name.trim()) {
-      newErrors.name = "Namn fält krävs";
+      newErrors.name = "Namn krävs";
     }
     if (!phone.trim()) {
-      newErrors.phone = "Mobilnummer krävs";
+      newErrors.phone = "Telefonnummer krävs";
     } else {
       const cleanPhone = phone.replace(/\s+/g, '');
       if (cleanPhone.length < 8) {
-        newErrors.phone = "Felaktigt telefonnummer (måste innehålla minst 8 siffror)";
+        newErrors.phone = "Ange ett giltigt telefonnummer";
       }
     }
     if (!email.trim()) {
-      newErrors.email = "Mejl fält krävs";
+      newErrors.email = "E-postadress krävs";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = "Ogiltig e-postadress";
     }
@@ -219,55 +276,76 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
     setErrors({});
     setStep(3);
+  };
 
-    // Fire lead generation payload immediately in Step 2 so contact details are not lost
+  // Handle Step 3 Submit (Datum & Meddelande)
+  const handleStep3Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: { [key: string]: string } = {};
+
+    if (!cleaningDate) {
+      newErrors.cleaningDate = "Välj ett flyttdatum i kalendern";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    setStep(4);
+
+    // Fire lead generation payload immediately in Step 3 so details are saved
     try {
       const payload: FormValues = {
         serviceType: 'Flyttstädning',
         service_type: 'Flyttstäd',
-        squareMeter: squareMeter || (antalRum === '5+' ? 120 : parseInt(antalRum) * 25).toString(),
-        square_meter: squareMeter || (antalRum === '5+' ? 120 : parseInt(antalRum) * 25).toString(),
-        antalRum,
-        antal_rum: antalRum,
+        squareMeter: squareMeter || '70',
+        square_meter: squareMeter || '70',
         city,
-        frequency,
+        frequency: 'Engångsstädning',
         name,
         phone,
         email,
-        suggested_price: simulated.price,
-        suggestedPrice: simulated.price,
+        cleaningDate,
+        cleaning_date: cleaningDate,
+        sprojsFonster,
+        inglasadAltan,
+        message,
+        suggested_price: flyttPriceInfo.formattedPrice,
+        suggestedPrice: flyttPriceInfo.formattedPrice,
         ...utmParams
       };
 
-      console.log("Submitting Step 2 lead to CRM:", payload);
+      console.log("Submitting Step 3 lead to CRM:", payload);
 
       submitLeadToCRM(payload)
         .then((data) => {
-          console.log("Step 2 CRM submission success:", data);
+          console.log("Step 3 CRM submission success:", data);
           if (!hasFiredLeadEvent) {
-            pushLeadToDataLayer(name, email, phone, city, squareMeter || (parseInt(antalRum) * 20).toString(), frequency);
+            pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
             setHasFiredLeadEvent(true);
           }
         })
         .catch((err) => {
-          console.error("Step 2 CRM submission network failure:", err);
+          console.error("Step 3 CRM submission network failure:", err);
           if (!hasFiredLeadEvent) {
-            pushLeadToDataLayer(name, email, phone, city, squareMeter || (parseInt(antalRum) * 20).toString(), frequency);
+            pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
             setHasFiredLeadEvent(true);
           }
         });
     } catch (err) {
-      console.error("Step 2 CRM submission exception:", err);
+      console.error("Step 3 CRM submission exception:", err);
     }
   };
 
-  // Step 3 sequence auto-advancer
+  // Step 4 sequence auto-advancer (Loader animation)
   useEffect(() => {
-    if (step === 3) {
+    if (step === 4) {
       const words = [
         "Sedan 1998",
-        "Vi följer kollektivavtal",
-        "Vi är försäkrade"
+        "100% Besiktningsgaranti",
+        "Fast pris efter RUT-avdrag"
       ];
       let currentWordIdx = 0;
       setLoadingWord(words[0]);
@@ -278,62 +356,35 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
           setLoadingWord(words[currentWordIdx]);
         } else {
           clearInterval(interval);
-          setStep(4);
+          setStep(5);
         }
-      }, 1500);
+      }, 1200);
 
       return () => clearInterval(interval);
     }
   }, [step]);
 
-  // Calculate simulated price brackets based on standard Swedish cleaning variables
-  const getSimulatedPriceSummary = () => {
-    const sqm = parseInt(squareMeter) || (antalRum === '5+' ? 120 : parseInt(antalRum) * 25);
-    
-    let ratePerSqm = 45;
-    if (sqm > 120) ratePerSqm = 32;
-    else if (sqm > 80) ratePerSqm = 36;
-    else if (sqm > 50) ratePerSqm = 40;
-
-    let basePrice = sqm * ratePerSqm;
-    if (basePrice < 1250) basePrice = 1250;
-
-    let addOnsPrice = 0;
-    if (sprojsadeFonster) addOnsPrice += 450;
-    if (inglasadAltan) addOnsPrice += 650;
-
-    const total = Math.round(basePrice + addOnsPrice);
-    
-    // Format with space separator for thousands (e.g. 1 850 kr)
-    const formattedPrice = total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " kr";
-
-    return {
-      price: formattedPrice,
-      totalVal: total
-    };
-  };
-
-  const simulated = getSimulatedPriceSummary();
-
-  // Final submit to the backend Express route
+  // Final submit (Step 5 -> Step 6)
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Align fields exactly to calculator_submit.php/lead spec
       const payload: FormValues = {
         serviceType: 'Flyttstädning',
         service_type: 'Flyttstäd',
-        squareMeter: squareMeter || (antalRum === '5+' ? 120 : parseInt(antalRum) * 25).toString(), // estimate kvm if missing
-        square_meter: squareMeter || (antalRum === '5+' ? 120 : parseInt(antalRum) * 25).toString(),
-        antalRum,
-        antal_rum: antalRum,
+        squareMeter: squareMeter || '70',
+        square_meter: squareMeter || '70',
         city,
-        frequency,
+        frequency: 'Engångsstädning',
         name,
         phone,
         email,
-        suggested_price: simulated.price,
-        suggestedPrice: simulated.price,
+        cleaningDate,
+        cleaning_date: cleaningDate,
+        sprojsFonster,
+        inglasadAltan,
+        message,
+        suggested_price: flyttPriceInfo.formattedPrice,
+        suggestedPrice: flyttPriceInfo.formattedPrice,
         ...utmParams
       };
 
@@ -343,22 +394,20 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
       console.log("CRM submission response:", data);
 
       if (!hasFiredLeadEvent) {
-        pushLeadToDataLayer(name, email, phone, city, squareMeter || (antalRum === '5+' ? 120 : parseInt(antalRum) * 25).toString(), frequency);
+        pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
         setHasFiredLeadEvent(true);
       }
 
-      // Trigger redirect / success state to render /tack view
       onSubmitSuccess('flytt', city);
-      setStep(5);
+      setStep(6);
     } catch (e) {
       console.error("Failed submitting final form fields", e);
       if (!hasFiredLeadEvent) {
-        pushLeadToDataLayer(name, email, phone, city, squareMeter || (antalRum === '5+' ? 120 : parseInt(antalRum) * 25).toString(), frequency);
+        pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
         setHasFiredLeadEvent(true);
       }
-      // Fail gracefully and show success anyway to not block user flow if remote endpoint is down
       onSubmitSuccess('flytt', city);
-      setStep(5);
+      setStep(6);
     } finally {
       setIsSubmitting(false);
     }
@@ -366,43 +415,50 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
   // Helper render for progress indicator
   const renderProgressIndicator = () => {
-    const steps = [1, 2, 4]; // step 3 is the loading transition
-    const stepLabel = { 1: "VAL", 2: "KONTAKT", 4: "PRIS" };
+    const steps = [
+      { num: 1, label: "Bostad" },
+      { num: 2, label: "Kontakt" },
+      { num: 3, label: "Datum" },
+      { num: 5, label: "Pris" }
+    ];
+
     return (
-      <div className="flex items-center justify-center gap-1.5 mb-4" id="form-progress-bar">
+      <div className="flex items-center justify-center gap-1 sm:gap-2 mb-5" id="form-progress-bar">
         {steps.map((s, idx) => {
           let state: 'active' | 'done' | 'pending' = 'pending';
-          if (step === s) {
+          if (step === s.num || (step === 4 && s.num === 3)) {
             state = 'active';
-          } else if (step > s || (step === 3 && s === 2) || (step === 5 && s === 4)) {
+          } else if (
+            step > s.num ||
+            (step === 4 && s.num < 5) ||
+            (step === 6)
+          ) {
             state = 'done';
           }
 
           return (
-            <div key={s} className="flex items-center">
-              {/* Dot Wrapper */}
+            <div key={s.num} className="flex items-center">
               <div className="flex flex-col items-center relative">
                 <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[9px] border transition-all duration-350 ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] border transition-all duration-200 ${
                     state === 'done'
                       ? 'bg-brand border-brand text-white'
                       : state === 'active'
                       ? 'bg-brand border-brand text-white shadow-md ring-4 ring-brand/20'
-                      : 'bg-white border-gray-250 text-gray-400'
+                      : 'bg-white border-gray-300 text-gray-400'
                   }`}
                 >
-                  {state === 'done' ? <Check className="w-3 h-3" /> : idx + 1}
+                  {state === 'done' ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                 </div>
-                <span className={`text-[10px] font-bold mt-0.5 uppercase tracking-wider ${state === 'active' ? 'text-brand' : 'text-gray-400'}`}>
-                  {stepLabel[s as 1 | 2 | 4]}
+                <span className={`text-[10px] sm:text-[11px] font-semibold mt-1 tracking-tight ${state === 'active' ? 'text-brand font-bold' : 'text-gray-400'}`}>
+                  {s.label}
                 </span>
               </div>
 
-              {/* Connecting line between steps */}
               {idx < steps.length - 1 && (
                 <div
-                  className={`h-0.5 w-10 mx-1 rounded-full transition-colors duration-300 ${
-                    step > s || (step === 3 && s === 1) || (step === 5 && s === 2) ? 'bg-brand' : 'bg-gray-200'
+                  className={`h-0.5 w-5 sm:w-8 mx-1 sm:mx-1.5 rounded-full transition-colors duration-300 ${
+                    step > s.num || (step === 4 && s.num < 5) || (step === 6) ? 'bg-brand' : 'bg-gray-200'
                   }`}
                 ></div>
               )}
@@ -414,177 +470,183 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
   };
 
   return (
-    <div className="w-full bg-white/95 backdrop-blur-md rounded-3xl border border-gray-200/80 shadow-xl p-[18px] md:p-[28px]" id="calculator-form-container">
-      {step !== 3 && step !== 5 && renderProgressIndicator()}
+    <div className="w-full bg-[#f7f7f6] rounded-3xl border border-gray-200/80 shadow-xl p-5 md:p-7" id="calculator-form-container">
+      {step !== 4 && step !== 6 && renderProgressIndicator()}
 
-      {/* STEP 1: CONFIGURATION */}
+      {/* STEP 1: BOSTAD */}
       {step === 1 && (
-        <form onSubmit={handleStep1Submit} className="flex flex-col gap-[12px]" id="stepperForm">
-          <h2 className="text-base md:text-lg font-black text-gray-900 tracking-tight font-display mb-0.5 text-center">
-            Få prisförslag direkt
-          </h2>
-          <p className="text-xs md:text-sm text-gray-500 text-center mb-2">
-            Beräkna ditt städpris på under 60 sekunder.
-          </p>
+        <form onSubmit={handleStep1Submit} noValidate className="space-y-4" id="stepperForm">
+          <div className="text-center space-y-1 mb-2">
+            <h2 className="text-lg md:text-xl font-extrabold text-gray-900 tracking-tight font-display">
+              Räkna ut pris för flyttstädning
+            </h2>
+            <p className="text-xs md:text-sm text-gray-500">
+              Få ditt fasta pris direkt online på under 60 sekunder.
+            </p>
+          </div>
 
-          {/* Service tile selector (Locked Flyttstädning Badge) */}
-          <div className="w-full">
-            <div className="service-confirmed bg-[#FFF5F4] border-2 border-[#EC4C44] rounded-[8px] py-[8px] px-[12px] flex items-center gap-3 w-full" id="service-confirmed-badge">
-              <span className="text-base">📦</span>
+          {/* Service badge (Pre-selected) */}
+          <div>
+            <div className="bg-red-50/60 border-2 border-[#ec4c44] rounded-xl p-3 flex items-center gap-3 w-full">
+              <span className="text-lg">🚚</span>
               <div className="text-left">
                 <strong className="text-gray-900 text-xs font-bold block">Flyttstädning</strong>
-                <p className="text-xs text-gray-500 mt-0.5 leading-none">Grundlig städning inför flytt, med garanti</p>
+                <p className="text-xs text-gray-500 mt-0.5">Inkl. fönsterputs & 100% besiktningsgaranti</p>
               </div>
-              <span className="ml-auto text-[#EC4C44] font-bold text-xs">✓</span>
+              <span className="ml-auto text-brand font-bold text-xs bg-white px-2.5 py-1 rounded-full border border-brand/20 shadow-2xs">
+                Vald
+              </span>
             </div>
-            <input type="hidden" name="serviceType" value="Flyttstädning" />
           </div>
 
-          {/* Antal rum Clickable Tiles */}
-          <div className="w-full">
-            <label htmlFor="antalRum">
-              Antal rum:
-            </label>
-            <div className="room-tiles" id="room-tiles">
-              {['1', '2', '3', '4', '5+'].map((val) => {
-                const isActive = antalRum === val;
-                return (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setAntalRum(val)}
-                    className={`room-tile ${isActive ? 'active' : ''}`}
-                    data-value={val}
-                  >
-                    {val}
-                  </button>
-                );
-              })}
-            </div>
-            <input type="hidden" id="rooms" name="rooms" value={antalRum} required />
-          </div>
-
-          {/* Square Feet (kvm) Optional field */}
-          <div className="w-full">
-            <label htmlFor="squareMeter" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Bostadsyta (kvm):</span>
-              <span style={{ fontSize: '10px', background: '#F3F4F6', color: '#9CA3AF', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>Valfritt</span>
+          {/* Square Meters (Bostadsyta kvm) */}
+          <div className="space-y-1.5">
+            <label htmlFor="squareMeter">
+              Bostadsyta (kvm) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               id="squareMeter"
               name="squareMeter"
-              placeholder="T.ex. 85"
+              placeholder="T.ex. 70"
               value={squareMeter}
-              onChange={(e) => setSquareMeter(e.target.value)}
-              min="5"
+              onChange={(e) => {
+                setSquareMeter(e.target.value);
+                if (errors.squareMeter) setErrors({ ...errors, squareMeter: '' });
+              }}
+              min="10"
               max="500"
-              className="w-full"
+              inputMode="numeric"
+              className={errors.squareMeter ? 'field-error' : ''}
             />
+            {errors.squareMeter && (
+              <span className="error-text">⚠ {errors.squareMeter}</span>
+            )}
           </div>
 
-          {/* Location (Stad) Selection field */}
-          <div className="w-full relative">
-            <label htmlFor="city">Din stad:</label>
-            <input
-              type="text"
+          {/* Location (Stad) Selection field with Searchable City Combobox */}
+          <div className="space-y-1.5">
+            <label htmlFor="city">
+              Stad <span className="text-red-500">*</span>
+            </label>
+            <CityCombobox
               id="city"
-              name="city"
-              placeholder="T.ex. Borås"
               value={city}
-              onChange={(e) => {
-                setCity(e.target.value);
-                if (errors.city) {
-                  setErrors({ ...errors, city: '' });
-                }
+              onChange={(val) => {
+                setCity(val);
+                if (errors.city) setErrors({ ...errors, city: '' });
               }}
-              className={`w-full ${errors.city ? 'field-error' : ''}`}
+              error={errors.city}
             />
             {errors.city && (
               <span className="error-text">⚠ {errors.city}</span>
             )}
           </div>
 
-          {/* Tilläggstjänster Checkboxes */}
-          <div className="w-full space-y-2">
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Välj tilläggstjänster:</label>
-            <div className="grid grid-cols-1 gap-3">
-              <label className={`flex items-center justify-between bg-white border-2 ${sprojsadeFonster ? 'border-[#EC4C44] bg-[#FFF5F4]/40 ring-2 ring-[#EC4C44]/5' : 'border-[#E2E8F0] hover:border-gray-400'} rounded-xl p-3.5 transition-all duration-150 cursor-pointer text-[15px] font-bold text-gray-800 group shadow-sm`}>
+          {/* Additional Services UI (Eventuella tillval) - Compact Selectable Cards */}
+          <div className="space-y-2 pt-2 border-t border-gray-150">
+            <label className="block text-xs font-semibold text-gray-700">
+              Eventuella tillval
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Card 1: Spröjsade fönster */}
+              <div
+                onClick={() => setSprojsFonster(!sprojsFonster)}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                  sprojsFonster
+                    ? 'border-brand bg-red-50/40 shadow-2xs ring-1 ring-brand'
+                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                }`}
+              >
                 <input
                   type="checkbox"
-                  checked={sprojsadeFonster}
-                  onChange={(e) => setSprojsadeFonster(e.target.checked)}
-                  className="sr-only"
+                  checked={sprojsFonster}
+                  onChange={() => {}} // Handled by div container click
+                  className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
                 />
-                <div className="flex items-center gap-3.5">
-                  <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-150 ${sprojsadeFonster ? 'bg-[#EC4C44] border-[#EC4C44] scale-110 shadow-md shadow-[#EC4C44]/20' : 'border-gray-300 bg-white group-hover:border-gray-400'}`}>
-                    {sprojsadeFonster && (
-                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-[15px] md:text-base font-bold text-gray-900 tracking-tight leading-tight select-none">Spröjsade fönster</span>
+                <div className="flex flex-col min-w-0 justify-center">
+                  <span className="text-xs font-semibold text-gray-900 leading-tight">
+                    Spröjsade fönster
+                  </span>
+                  <span className="text-[11px] text-gray-500 mt-0.5">
+                    Tillägg
+                  </span>
                 </div>
-              </label>
-              
-              <label className={`flex items-center justify-between bg-white border-2 ${inglasadAltan ? 'border-[#EC4C44] bg-[#FFF5F4]/40 ring-2 ring-[#EC4C44]/5' : 'border-[#E2E8F0] hover:border-gray-400'} rounded-xl p-3.5 transition-all duration-150 cursor-pointer text-[15px] font-bold text-gray-800 group shadow-sm`}>
+              </div>
+
+              {/* Card 2: Inglasad altan / balkong */}
+              <div
+                onClick={() => setInglasadAltan(!inglasadAltan)}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                  inglasadAltan
+                    ? 'border-brand bg-red-50/40 shadow-2xs ring-1 ring-brand'
+                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={inglasadAltan}
-                  onChange={(e) => setInglasadAltan(e.target.checked)}
-                  className="sr-only"
+                  onChange={() => {}} // Handled by div container click
+                  className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
                 />
-                <div className="flex items-center gap-3.5">
-                  <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-150 ${inglasadAltan ? 'bg-[#EC4C44] border-[#EC4C44] scale-110 shadow-md shadow-[#EC4C44]/20' : 'border-gray-300 bg-white group-hover:border-gray-400'}`}>
-                    {inglasadAltan && (
-                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-[15px] md:text-base font-bold text-gray-900 tracking-tight leading-tight select-none">Inglasad altan/balkong</span>
+                <div className="flex flex-col min-w-0 justify-center">
+                  <span className="text-xs font-semibold text-gray-900 leading-tight">
+                    Inglasad altan / balkong
+                  </span>
+                  <span className="text-[11px] text-gray-500 mt-0.5">
+                    Tillägg
+                  </span>
                 </div>
-              </label>
+              </div>
             </div>
           </div>
 
-          <div className="buttons pt-2 w-full">
+          <div className="pt-2">
             <button
               type="submit"
               id="form-step1-submit"
-              className="w-full"
+              className="btn-primary"
             >
               <span>Beräkna mitt pris →</span>
             </button>
+            <div className="flex items-center justify-center gap-2.5 mt-2.5 text-[11px] font-semibold text-gray-500 flex-wrap">
+              <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-500" /> Fast pris</span>
+              <span className="text-gray-300">&middot;</span>
+              <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-500" /> Inga dolda avgifter</span>
+              <span className="text-gray-300">&middot;</span>
+              <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-500" /> Pris efter RUT</span>
+            </div>
           </div>
 
           <p className="privacy-note">
-            🔒 Genom att fylla i formuläret godkänner du vår <a href="https://stadochtradgard.se/integritetspolicy/" className="underline hover:text-[#EC4C44] transition-colors" target="_blank" rel="noopener noreferrer">integritetspolicy</a>. Vi delar aldrig dina uppgifter.
+            🔒 Genom att fylla i formuläret godkänner du vår <a href="https://stadochtradgard.se/integritetspolicy/" className="underline hover:text-brand transition-colors" target="_blank" rel="noopener noreferrer">integritetspolicy</a>. Vi delar aldrig dina uppgifter.
           </p>
         </form>
       )}
 
-      {/* STEP 2: CONTACT INFORMATION */}
+      {/* STEP 2: KONTAKTUPPGIFTER */}
       {step === 2 && (
-         <form onSubmit={handleStep2Submit} className="space-y-5" id="stepperForm">
-          <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight font-display text-center mb-1">
-            Var ska vi skicka kalkylen?
-          </h2>
-          <p className="text-xs md:text-sm text-gray-500 text-center mb-6">
-            Fyll i dina uppgifter för att se din prisuppskattning och hämta offert.
-          </p>
+        <form onSubmit={handleStep2Submit} noValidate className="space-y-4" id="stepperForm">
+          <div className="text-center space-y-1 mb-2">
+            <h2 className="text-lg md:text-xl font-extrabold text-gray-900 tracking-tight font-display">
+              Var ska vi skicka offerten?
+            </h2>
+            <p className="text-xs md:text-sm text-gray-500">
+              Fyll i dina kontaktuppgifter för att gå vidare.
+            </p>
+          </div>
 
           {/* Name Field */}
-          <div className="space-y-1">
-            <label htmlFor="name" className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <User className="w-4 h-4 text-gray-400" />
-              <span>Namn <span style={{ color: "red" }}>*</span></span>
+          <div className="space-y-1.5">
+            <label htmlFor="name" className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-gray-400" />
+              <span>Namn <span className="text-red-500">*</span></span>
             </label>
             <input
               type="text"
               id="name"
               name="name"
+              autoComplete="name"
               placeholder="Ditt fullständiga namn"
               value={name}
               onChange={(e) => {
@@ -592,23 +654,24 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
                 if (errors.name) setErrors({ ...errors, name: '' });
               }}
               className={errors.name ? 'field-error' : ''}
-              required
             />
             {errors.name && (
               <span className="error-text">⚠ {errors.name}</span>
             )}
           </div>
 
-          {/* Phone (REQUIRED with Swedish validation) */}
-          <div className="space-y-1">
-            <label htmlFor="phone" className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Phone className="w-4 h-4 text-gray-400" />
-              <span>Mobilnummer <span style={{ color: "red" }}>*</span></span>
+          {/* Phone Field */}
+          <div className="space-y-1.5">
+            <label htmlFor="phone" className="flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-gray-400" />
+              <span>Telefonnummer <span className="text-red-500">*</span></span>
             </label>
             <input
               type="tel"
               id="phone"
               name="phone"
+              inputMode="tel"
+              autoComplete="tel"
               placeholder="07X XXX XX XX"
               value={phone}
               onChange={(e) => {
@@ -616,7 +679,6 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
                 if (errors.phone) setErrors({ ...errors, phone: '' });
               }}
               className={errors.phone ? 'field-error' : ''}
-              required
             />
             {errors.phone && (
               <span className="error-text">⚠ {errors.phone}</span>
@@ -624,15 +686,17 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
           </div>
 
           {/* Email Field */}
-          <div className="space-y-1">
-            <label htmlFor="email" className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Mail className="w-4 h-4 text-gray-400" />
-              <span>E-postadress <span style={{ color: "red" }}>*</span></span>
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-gray-400" />
+              <span>E-postadress <span className="text-red-500">*</span></span>
             </label>
             <input
               type="email"
               id="email"
               name="email"
+              inputMode="email"
+              autoComplete="email"
               placeholder="din@email.se"
               value={email}
               onChange={(e) => {
@@ -640,29 +704,98 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
                 if (errors.email) setErrors({ ...errors, email: '' });
               }}
               className={errors.email ? 'field-error' : ''}
-              required
             />
             {errors.email && (
               <span className="error-text">⚠ {errors.email}</span>
             )}
           </div>
 
-          <p className="privacy-note text-[12px] text-[#7F8C8D] italic text-center mt-2">
-            🔒 Vi kontaktar dig snarast möjligt. Ingen bindningstid.
+          <p className="privacy-note">
+            🔒 Din e-post och telefon behandlas konfidentiellt.
           </p>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2.5 pt-2">
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="w-1/3 border border-[#D5D8DC] hover:bg-gray-50 text-gray-600 h-11 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              className="btn-secondary w-1/3"
             >
               Tillbaka
             </button>
             <button
               type="submit"
-              className="w-2/3 bg-[#EC4C44] hover:bg-[#D44038] text-white h-11 rounded-lg text-sm font-bold shadow-sm transition-all duration-150 cursor-pointer"
+              className="btn-primary w-2/3"
               id="form-step2-submit"
+            >
+              <span>Nästa: Välj datum →</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* STEP 3: FLYTTDATUM & MEDDELANDE */}
+      {step === 3 && (
+        <form onSubmit={handleStep3Submit} noValidate className="space-y-4" id="stepperForm">
+          <div className="text-center space-y-1 mb-2">
+            <h2 className="text-lg md:text-xl font-extrabold text-gray-900 tracking-tight font-display">
+              När vill du ha flyttstädningen?
+            </h2>
+            <p className="text-xs md:text-sm text-gray-500">
+              Välj datum i kalendern och skriv eventuella önskemål.
+            </p>
+          </div>
+
+          {/* Cleaning Date (Custom React Calendar Popover) */}
+          <div className="space-y-1.5">
+            <label htmlFor="cleaningDate">
+              Önskat flyttdatum <span className="text-red-500">*</span>
+            </label>
+            <DatePicker
+              id="cleaningDate"
+              value={cleaningDate}
+              onChange={(d) => {
+                setCleaningDate(d);
+                if (errors.cleaningDate) setErrors({ ...errors, cleaningDate: '' });
+              }}
+              error={errors.cleaningDate}
+            />
+            {errors.cleaningDate && (
+              <span className="error-text">⚠ {errors.cleaningDate}</span>
+            )}
+          </div>
+
+          {/* Additional Message */}
+          <div className="space-y-1.5">
+            <label htmlFor="message">
+              Meddelande (valfritt)
+            </label>
+            <textarea
+              id="message"
+              name="message"
+              rows={4}
+              placeholder="Särskilda önskemål eller koder till dörr..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="w-full placeholder:text-gray-400 text-gray-900 border border-[#D5D8DC] rounded-lg p-3 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all resize-y min-h-[96px]"
+            />
+          </div>
+
+          <p className="privacy-note">
+            🔒 Vi kontaktar dig inom kort med bokningsbekräftelse. 100% städgaranti.
+          </p>
+
+          <div className="flex gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="btn-secondary w-1/3"
+            >
+              Tillbaka
+            </button>
+            <button
+              type="submit"
+              className="btn-primary w-2/3"
+              id="form-step3-submit"
             >
               <span>Visa mitt prisförslag →</span>
             </button>
@@ -670,134 +803,141 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         </form>
       )}
 
-      {/* STEP 3: TRUST ANIMATION TIMEOUT */}
-      {step === 3 && (
+      {/* STEP 4: TRUST ANIMATION TIMEOUT */}
+      {step === 4 && (
         <div className="py-12 flex flex-col items-center justify-center text-center space-y-6" id="form-animated-loader">
-          <Loader2 className="w-14 h-14 text-[#EC4C44] animate-spin" />
+          <Loader2 className="w-12 h-12 text-brand animate-spin" />
           <div className="space-y-2">
-            <h3 className="text-xl font-extrabold text-gray-900 font-display animate-pulse" id="special_word">
+            <h3 className="text-xl font-extrabold text-gray-900 font-display animate-pulse">
               {loadingWord}
             </h3>
-            <p className="text-xs text-gray-400 max-w-xs mx-auto">
-              Analyserar bostadsstorlek och rumsfördelning{city ? ` i ${city}` : ''}...
+            <p className="text-xs text-gray-500 max-w-xs mx-auto">
+              Beräknar fast pris för {squareMeter} kvm flyttstädning{city ? ` i ${city}` : ''}...
             </p>
           </div>
 
-          {/* Mini Trust badge anchors listing inside loaders */}
-          <div className="flex gap-2 justify-center pt-4 opacity-75">
-            <span className="bg-red-50 border border-red-100/60 rounded-full py-1 px-3 text-[10px] font-bold text-[#EC4C44]">Sedan 1998</span>
-            <span className="bg-red-50 border border-red-100/60 rounded-full py-1 px-3 text-[10px] font-bold text-[#EC4C44]">Kollektivavtal</span>
-            <span className="bg-red-50 border border-red-100/60 rounded-full py-1 px-3 text-[10px] font-bold text-[#EC4C44]">Försäkrade</span>
+          <div className="flex gap-2 justify-center pt-2 opacity-85">
+            <span className="bg-red-50 border border-red-100 rounded-full py-1 px-3 text-[10px] font-bold text-brand">Sedan 1998</span>
+            <span className="bg-red-50 border border-red-100 rounded-full py-1 px-3 text-[10px] font-bold text-brand">100% Städgaranti</span>
+            <span className="bg-red-50 border border-red-100 rounded-full py-1 px-3 text-[10px] font-bold text-brand">RUT-avdrag 50%</span>
           </div>
         </div>
       )}
 
-      {/* STEP 4: BRACKET & PRICING SCHEME */}
-      {step === 4 && (
+      {/* STEP 5: STREAMLINED PRICE SUMMARY SCREEN */}
+      {step === 5 && (
         <div className="space-y-6" id="pricing-estimate">
-          <div className="text-center">
-            <h3 className="text-xl md:text-2xl font-black text-gray-900 font-display mt-1">
-              Ditt uppskattade pris för flyttstädning:
+          <div className="text-center space-y-1">
+            <span className="inline-block bg-emerald-100 text-emerald-800 text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider mb-1">
+              Inga dolda avgifter
+            </span>
+            <h3 className="text-xl md:text-2xl font-black text-gray-900 font-display">
+              Ditt fasta pris efter RUT
             </h3>
+            <p className="text-xs text-gray-500">
+              {squareMeter || 70} kvm bostadsyta{city ? ` i ${city}` : ''}
+            </p>
           </div>
 
-          {/* Pricing detail grid box */}
-          <div className="bg-[#FAF9F7] rounded-2xl p-5 border border-gray-200/80">
-            
-            <div className="py-4 space-y-2.5">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600 font-medium">Bostadsstorlek:</span>
-                <span className="font-bold text-gray-800">{squareMeter ? `${squareMeter} kvm` : `${antalRum} rum`}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600 font-medium">Fönsterputsning:</span>
-                <span className="font-bold text-emerald-600">Alltid inkluderat</span>
-              </div>
-              {(sprojsadeFonster || inglasadAltan) && (
-                <div className="flex justify-between items-center text-sm border-t border-dashed border-gray-200 pt-2.5">
-                  <span className="text-gray-600 font-medium">Valda tillägg:</span>
-                  <span className="font-bold text-gray-800">
-                    {[
-                      sprojsadeFonster && "Spröjsade fönster",
-                      inglasadAltan && "Inglasad altan/balkong"
-                    ].filter(Boolean).join(", ")}
-                  </span>
-                </div>
-              )}
+          {/* Large Price Display */}
+          <div className="bg-gray-50/80 rounded-2xl p-5 border border-gray-200/80 text-center space-y-1">
+            <div className="text-4xl md:text-5xl font-black text-brand font-display tracking-tight" id="price">
+              {flyttPriceInfo.formattedPrice}
             </div>
+            <p className="text-[11px] text-gray-500 font-medium pt-1">
+              Inkl. moms & 50% RUT-avdrag direkt på fakturan
+            </p>
+          </div>
 
-            {/* Accentuated Highlight for standard price */}
-            <div className="pt-4 border-t border-gray-200/80 flex justify-between items-end">
-              <div>
-                <span className="text-[10px] bg-emerald-600 text-white font-black py-0.5 px-2 rounded-full uppercase tracking-wider inline-block mb-1">
-                  RUT-Avdrag 50%
-                </span>
-                <p className="text-xs text-gray-500 font-semibold leading-tight">Ditt pris att betala:</p>
+          {/* Included in your move-out cleaning checklist */}
+          <div className="space-y-2.5 bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl">
+            <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider text-center">
+              Detta ingår alltid i ditt pris:
+            </h4>
+            <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 font-semibold">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Komplett flyttstädning</span>
               </div>
-              <div className="text-right">
-                <strong className="text-3xl font-black text-[#EC4C44] font-display leading-none" id="price">
-                  {simulated.price}
-                </strong>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Fönsterputs</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Ugn & kyl/frys</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Kök & badrum</span>
+              </div>
+              <div className="flex items-center gap-1.5 col-span-2 justify-center pt-1 text-emerald-800 font-bold border-t border-emerald-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>100% Besiktningsgaranti</span>
               </div>
             </div>
           </div>
 
-          <p className="text-sm font-medium text-gray-600 text-center px-4 leading-relaxed">
-            Priset är en uppskattning — du får alltid en offert innan du bestämmer dig.
-          </p>
-
-          <input type="hidden" name="suggested_price" id="suggested_price" value={simulated.price} />
+          <input type="hidden" name="suggested_price" id="suggested_price" value={flyttPriceInfo.formattedPrice} />
           <input type="hidden" name="button_click" id="button_click" value="1" />
 
+          {/* Single Strong CTA Button */}
           <button
             onClick={handleFinalSubmit}
             disabled={isSubmitting}
-            className="w-full bg-[#EC4C44] hover:bg-[#D44038] text-white h-12 rounded-xl text-base font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full bg-brand hover:bg-brand-hover text-white h-12 rounded-xl text-base font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
             id="contact_button"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Skickar förfrågan...</span>
+                <span>Skickar bokning...</span>
               </>
             ) : (
-              <span>Jag är intresserad – kontakta mig!</span>
+              <span>Boka flyttstädning</span>
             )}
           </button>
 
-          <div className="text-center">
-            <div className="trust-row flex justify-center items-center gap-3.5 text-xs text-[#27AE60] font-semibold mt-1">
-              <span>✓ Fast pris</span>
-              <span>✓ Nöjd-kund-garanti</span>
-              <span>✓ RUT-avdrag</span>
-            </div>
+          {/* Trust badges below CTA */}
+          <div className="trust-row flex justify-center items-center gap-3 text-xs text-emerald-700 font-semibold pt-1 flex-wrap">
+            <span>✓ Besiktningsgaranti</span>
+            <span className="text-gray-300">&middot;</span>
+            <span>✓ RUT-avdrag 50%</span>
+            <span className="text-gray-300">&middot;</span>
+            <span>✓ Inga dolda avgifter</span>
           </div>
 
-          <a
-            href="tel:0101753040"
-            className="block text-center text-xs font-bold text-gray-500 hover:text-[#EC4C44] underline"
-            id="pricing-call-fallback"
-          >
-            eller boka snabbt via tel: 010-175 30 40
-          </a>
+          {/* Direct Phone CTA */}
+          <div className="text-center pt-1 border-t border-gray-100">
+            <a
+              href="tel:0101753040"
+              className="text-xs font-bold text-gray-500 hover:text-brand transition-colors inline-flex items-center gap-1.5"
+              id="pricing-call-fallback"
+            >
+              <Phone className="w-3.5 h-3.5 text-brand" />
+              <span>Ring direkt: 010-175 30 40</span>
+            </a>
+          </div>
         </div>
       )}
 
-      {/* STEP 5: THANK YOU / SUCCESS COMPLETED STATE */}
-      {step === 5 && (
-        <div id="greetings" style={{ textAlign: 'center', padding: '20px 10px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>✓</div>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1C2833', marginBottom: '8px' }}>
-            Tack! Vi kontaktar dig snarast möjligt.
+      {/* STEP 6: SUCCESS STATE */}
+      {step === 6 && (
+        <div className="py-8 px-4 text-center space-y-4" id="greetings">
+          <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+            ✓
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 font-display">
+            Tack! Vi kontaktar dig inom kort med din bokningsbekräftelse.
           </h2>
-          <p style={{ fontSize: '14px', color: '#5D6D7E', marginBottom: '16px' }}>
+          <p className="text-sm text-gray-600">
             Vill du prata direkt? Ring oss på{' '}
-            <a href="tel:0101753040" style={{ color: '#EC4C44', fontWeight: 600 }}>
+            <a href="tel:0101753040" className="text-brand font-bold hover:underline">
               010-175 30 40
             </a>
           </p>
-          <p style={{ fontSize: '12px', color: '#95A5A6' }}>
-            E-post: <a href="mailto:info@stadochtradgard.se" style={{ color: '#EC4C44' }}>info@stadochtradgard.se</a>
+          <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">
+            E-post: <a href="mailto:info@stadochtradgard.se" className="text-brand font-medium">info@stadochtradgard.se</a>
           </p>
         </div>
       )}

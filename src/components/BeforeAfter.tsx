@@ -9,19 +9,19 @@ export default function BeforeAfter() {
       title: "Kök städning",
       beforeUrl: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=600&q=50",
       afterUrl: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80",
-      caption: "Hemstädning, Borås — Kök, 90 min"
+      caption: "Flyttstädning, Borås — Kök, 90 min"
     },
     bathroom: {
       title: "Badrum städning",
       beforeUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=600&q=50",
       afterUrl: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=600&q=80",
-      caption: "Djupstädning, Värnamo — Badrum, 120 min"
+      caption: "Flyttstädning, Värnamo — Badrum, 120 min"
     },
     livingroom: {
       title: "Vardagsrum städning",
       beforeUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=50",
       afterUrl: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=600&q=80",
-      caption: "Hemstädning, Gnosjö — Vardagsrum, 60 min"
+      caption: "Flyttstädning, Gnosjö — Vardagsrum, 60 min"
     }
   };
 
@@ -35,7 +35,7 @@ export default function BeforeAfter() {
             Resultat som talar för sig självt
           </h2>
           <p className="text-[16px] text-[#5D6D7E] text-center">
-            Inga filter — bara ren hemstädning
+            Inga filter — bara noggrann flyttstädning med besiktningsgaranti
           </p>
         </div>
 

@@ -28,6 +28,11 @@ export interface FormValues {
   name: string;
   phone: string;
   email: string;
+  cleaningDate?: string;
+  cleaning_date?: string;
+  sprojsFonster?: boolean;
+  inglasadAltan?: boolean;
+  message?: string;
   suggested_price?: string;
   suggestedPrice?: string;
   gclid?: string;

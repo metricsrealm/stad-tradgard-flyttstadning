@@ -4,23 +4,23 @@ export default function Benefits() {
   const benefits = [
     {
       icon: <ShieldCheck className="w-5 h-5 text-brand" />,
-      title: "Försäkrade städare",
-      desc: "Fullt ansvarsförsäkrade städare. Din och ditt hems trygghet är alltid vår högsta prioritet."
+      title: "100% Besiktningsgaranti",
+      desc: "Full besiktningsgaranti godkänd av hyresvärd och mäklare. Om något mot förmodan anmärks åtgärdar vi det kostnadsfritt."
     },
     {
       icon: <ReceiptText className="w-5 h-5 text-brand" />,
-      title: "RUT-avdrag direkt",
+      title: "RUT-avdrag direkt (50%)",
       desc: "Vi drar av RUT på 50% direkt på din faktura och tar hand om all rapportering till Skatteverket."
     },
     {
       icon: <UserCheck className="w-5 h-5 text-brand" />,
-      title: "Nöjd-kund-garanti",
-      desc: "Blir mäklaren eller hyresvärden inte nöjd vid besiktningen kommer vi tillbaka och åtgärdar det utan extra kostnad."
+      title: "Fönsterputs & ugn ingår",
+      desc: "Inga dolda tillägg. Fönsterputsning (in- och utsida), rengöring av ugn, kyl, frysar och köksfläkt ingår i det fasta priset."
     },
     {
       icon: <Award className="w-5 h-5 text-brand" />,
-      title: "Lokalt sedan 1998",
-      desc: "Med över 25 års erfarenhet i regionen garanterar vi beprövade metoder och pålitliga resultat."
+      title: "Erfarna sedan 1998",
+      desc: "Med över 25 års erfarenhet av flyttstädningar garanterar vi beprövade rutiner och ett garanterat godkänt resultat."
     }
   ];
 
@@ -35,10 +35,10 @@ export default function Benefits() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-[560px] mx-auto mb-12">
           <h2 className="text-[30px] font-bold tracking-tight text-[#1C2833] font-display">
-            Våra trygga fördelar
+            Våra trygga fördelar vid flyttstädning
           </h2>
           <p className="mt-4 text-[16px] text-[#5D6D7E] text-center">
-            Hos oss får du inte bara ett skinande rent resultat, utan också marknadens tryggaste upplägg för flyttstädning.
+            Hos oss får du inte bara ett skinande rent resultat vid utflytt, utan också marknadens tryggaste upplägg med godkänd besiktningsgaranti.
           </p>
         </div>
 

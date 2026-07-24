@@ -47,12 +47,12 @@ html {
 }
 
 /* Redesigned stepper form consistency styles */
-#stepperForm input,
+#stepperForm input:not([type="checkbox"]):not([type="radio"]),
 #stepperForm select {
   border: 1.5px solid #D5D8DC;
   border-radius: 8px;
-  height: 44px;
   padding: 0 14px;
+  height: 44px;
   font-size: 14px;
   width: 100%;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -60,39 +60,180 @@ html {
   background: #ffffff;
 }
 
+#stepperForm textarea {
+  border: 1.5px solid #D5D8DC;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  color: #1C2833;
+  background: #ffffff;
+}
+
+#stepperForm input[type="checkbox"] {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer;
+  accent-color: #EC4C44;
+}
+
+#stepperForm input::placeholder,
+#stepperForm select::placeholder,
+#stepperForm textarea::placeholder {
+  color: #9CA3AF; /* gray-400 */
+  opacity: 1;
+}
+
 #stepperForm input:focus,
-#stepperForm select:focus {
+#stepperForm select:focus,
+#stepperForm textarea:focus {
   border-color: #EC4C44;
   box-shadow: 0 0 0 3px rgba(236,76,68,0.12);
   outline: none;
 }
 
 #stepperForm label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
   color: #374151;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 5px;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-bottom: 6px;
 }
 
-#stepperForm .buttons button[type="button"],
-#stepperForm .buttons button[type="submit"] {
+#stepperForm .btn-primary {
   background: #EC4C44;
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 12px 24px;
-  font-size: 15px;
+  height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  #stepperForm .btn-primary {
+    font-size: 14px;
+    padding: 0 18px;
+  }
+}
+
+#stepperForm .btn-primary:hover {
+  background: #D44038;
+}
+
+#stepperForm .btn-secondary {
+  background: #ffffff;
+  color: #374151;
+  border: 1.5px solid #D5D8DC;
+  border-radius: 8px;
+  height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
   font-weight: 600;
   width: 100%;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
-#stepperForm .buttons button:hover {
-  background: #D44038;
+@media (min-width: 640px) {
+  #stepperForm .btn-secondary {
+    font-size: 14px;
+    padding: 0 16px;
+  }
+}
+
+#stepperForm .btn-secondary:hover {
+  background: #F9FAFB;
+  border-color: #9CA3AF;
+}
+
+/* Calendar styling overrides for DayPicker */
+.custom-calendar,
+.rdp-root,
+.rdp {
+  --rdp-accent-color: #EC4C44 !important;
+  --rdp-accent-color-dark: #D44038 !important;
+  --rdp-background-color: #FEF2F2 !important;
+  --rdp-outline: 2px solid #EC4C44 !important;
+  --rdp-outline-selected: 2px solid #EC4C44 !important;
+}
+
+/* DayPicker navigation icons, chevron and caption */
+.custom-calendar .rdp-caption_label,
+.custom-calendar .rdp-month_caption {
+  font-weight: 700 !important;
+  color: #111827 !important;
+}
+
+.custom-calendar .rdp-nav_button,
+.custom-calendar .rdp-button_reset,
+.custom-calendar .rdp-chevron,
+.custom-calendar .rdp-nav button {
+  color: #EC4C44 !important;
+  fill: #EC4C44 !important;
+}
+
+.custom-calendar .rdp-nav_button:hover,
+.custom-calendar .rdp-nav button:hover {
+  color: #D44038 !important;
+  fill: #D44038 !important;
+  background-color: #FEF2F2 !important;
+}
+
+/* Selected day */
+.custom-calendar .rdp-day_selected, 
+.custom-calendar .rdp-day_selected:hover,
+.custom-calendar .rdp-selected,
+.custom-calendar [aria-selected="true"] {
+  background-color: #EC4C44 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border-radius: 9999px !important;
+}
+
+/* Today indicator */
+.custom-calendar .rdp-day_today,
+.custom-calendar .rdp-today {
+  color: #EC4C44 !important;
+  font-weight: 700 !important;
+}
+
+.custom-calendar .rdp-day_today:not(.rdp-day_selected),
+.custom-calendar .rdp-today:not([aria-selected="true"]) {
+  border: 2px solid #EC4C44 !important;
+  color: #EC4C44 !important;
+  border-radius: 9999px !important;
+}
+
+/* Day hover states */
+.custom-calendar .rdp-button:hover:not([disabled]):not(.rdp-day_selected):not([aria-selected="true"]) {
+  background-color: #FEF2F2 !important;
+  color: #EC4C44 !important;
+  border-radius: 9999px !important;
 }
 
 .room-tiles {

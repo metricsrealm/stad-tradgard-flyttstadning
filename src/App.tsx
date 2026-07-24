@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import SocialProof from './components/SocialProof';
-import Benefits from './components/Benefits';
-// import BeforeAfter from './components/BeforeAfter';
+import WhatsIncluded from './components/WhatsIncluded';
+import WhyChooseUs from './components/WhyChooseUs';
+import BeforeWeArrive from './components/BeforeWeArrive';
 import Testimonials from './components/Testimonials';
 
 import ServiceArea from './components/ServiceArea';
@@ -155,7 +156,7 @@ export default function App() {
     });
     document.title = activeCity 
       ? `Professionell flyttstädning i ${activeCity}`
-      : `Professionell flyttstädning för ditt hem`;
+      : `Professionell flyttstädning med garanti | Städ & Trädgårdsservice`;
   }, [activeCity]);
 
   // Smooth scroll to hero form helper
@@ -227,12 +228,11 @@ export default function App() {
 
           <SocialProof />
 
-          <Benefits />
+          <WhatsIncluded onScrollToForm={scrollToForm} />
 
-          {/* Interactive Before & After sections */}
-          {/* <BeforeAfter /> */}
+          <WhyChooseUs />
 
-
+          <BeforeWeArrive />
 
           <Testimonials />
 

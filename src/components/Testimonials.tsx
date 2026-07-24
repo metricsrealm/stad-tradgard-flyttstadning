@@ -54,21 +54,21 @@ export default function Testimonials() {
   );
 
   return (
-    <section className="py-20 bg-white border-b border-gray-200" id="testimonials-section">
+    <section className="py-12 md:py-16 bg-slate-50 border-b border-gray-200/80" id="testimonials-section">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-[560px] mx-auto mb-8">
-          <h2 className="text-[30px] font-bold text-[#1C2833] tracking-tight font-display mb-3">
+        <div className="text-center max-w-[560px] mx-auto mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#1C2833] tracking-tight font-display mb-2">
             Vad våra kunder säger
           </h2>
-          <p className="text-[16px] text-[#5D6D7E] text-center leading-relaxed">
-            Verkliga omdömen från Google — vi är stolta över vår service sedan 1998
+          <p className="text-xs sm:text-sm text-[#5D6D7E] text-center leading-relaxed">
+            Omdömen från verifierade Google-recensioner.
           </p>
         </div>
 
         {/* Google Rating Summary Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 pb-8 border-b border-gray-100 max-w-md mx-auto" id="rating-summary-bar">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 max-w-md mx-auto" id="rating-summary-bar">
           <div className="text-[48px] font-extrabold text-[#1C2833] leading-none font-display">
             4.8
           </div>
