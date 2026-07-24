@@ -1,0 +1,8 @@
+{
+  "name": "Remix 2: Städ \u0026 Trädgårdsservice Landing Page",
+  "description": "Optimized high-converting Google Ads landing page and price calculator for Städ \u0026 Trädgårdsservice AB.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

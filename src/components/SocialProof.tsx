@@ -1,0 +1,44 @@
+import { Star, Calendar, ShieldCheck, Percent } from 'lucide-react';
+
+export default function SocialProof() {
+  const items = [
+    {
+      icon: <Star className="w-5 h-5 text-amber-500 fill-amber-500" />,
+      text: "4.8 / 5 Google-betyg"
+    },
+    {
+      icon: <Calendar className="w-5 h-5 text-brand" />,
+      text: "Sedan 1998"
+    },
+    {
+      icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />,
+      text: "Fullt försäkrade"
+    },
+    {
+      icon: <Percent className="w-5 h-5 text-emerald-600" />,
+      text: "Godkänt för RUT"
+    }
+  ];
+
+  return (
+    <section className="w-full bg-slate-50 py-6 border-b border-slate-100" id="social-proof-strip">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-2 divide-gray-250 md:divide-x">
+          {items.map((item, idx) => (
+            <div
+              key={idx}
+              className="flex flex-col sm:flex-row items-center justify-center text-center sm:text-left gap-2 sm:gap-3 px-2 first:pl-0"
+            >
+              <div className="p-2 bg-white rounded-full shadow-xs flex items-center justify-center">
+                {item.icon}
+              </div>
+              <span className="text-xs md:text-sm font-semibold tracking-tight text-gray-800">
+                {item.text}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-PQLPNQWP');</script>
+    <!-- End Google Tag Manager -->
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="https://stadochtradgard.se/wp-content/uploads/2023/02/favicon-1-150x150.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Professionell flyttstädning för ditt hem</title>
+    <script>
+      (function() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          let city = '';
+          const paramCity = params.get('city');
+          if (paramCity) {
+            const decoded = decodeURIComponent(paramCity);
+            city = decoded ? (decoded.charAt(0).toUpperCase() + decoded.slice(1)) : '';
+          }
+          
+          window.__initialCity = city;
+
+          function injectCity() {
+            document.querySelectorAll('[data-city]').forEach(function(el) {
+              el.textContent = city;
+            });
+            if (city) {
+              document.title = "Professionell flyttstädning i " + city;
+            } else {
+              document.title = "Professionell flyttstädning för ditt hem";
+            }
+          }
+
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', injectCity);
+          } else {
+            injectCity();
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PQLPNQWP"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
