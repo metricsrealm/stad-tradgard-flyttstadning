@@ -20,10 +20,10 @@ interface ServiceAccordionItem {
 export default function WhatsIncluded({ onScrollToForm }: WhatsIncludedProps) {
   // Accordion open states
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({
-    kitchen: true,
-    entireHome: true,
-    bathroom: true,
-    livingRoom: true,
+    kitchen: false,
+    entireHome: false,
+    bathroom: false,
+    livingRoom: false,
   });
 
   const toggleItem = (id: string) => {
