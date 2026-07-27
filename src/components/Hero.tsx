@@ -92,19 +92,16 @@ export default function Hero({
                         style={{ filter: 'url(#paint-turb)' }} 
                       />
                     </svg>
-                  </span> &mdash; fast pris med garanti
+                  </span> &mdash; se pris med garanti
                 </>
               ) : (
                 <>
-                  Professionell flyttstädning med garanti &mdash; fast pris online
+                  Professionell flyttstädning med garanti &mdash; se pris online
                 </>
               )}
             </h1>
 
-            {/* Supporting trusted sub-headline */}
-            <p className="text-lg md:text-xl text-gray-100 font-medium max-w-2xl">
-              Godkänd enligt mäklarens & hyresvärdens checklista &middot; Fast pris &middot; Full städgaranti & RUT-avdrag direkt.
-            </p>
+
 
             {/* Above fold trust ticks checklist */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2" id="hero-feature-checks">

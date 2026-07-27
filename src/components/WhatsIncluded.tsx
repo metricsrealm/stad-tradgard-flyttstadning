@@ -13,6 +13,7 @@ interface ServiceSubSection {
 interface ServiceAccordionItem {
   id: string;
   title: string;
+  introText?: string;
   subsections?: ServiceSubSection[];
   items?: string[];
 }
@@ -21,9 +22,12 @@ export default function WhatsIncluded({ onScrollToForm }: WhatsIncludedProps) {
   // Accordion open states
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({
     kitchen: false,
-    entireHome: false,
     bathroom: false,
     livingRoom: false,
+    entireHome: false,
+    additionalServices: false,
+    beforeWeArrive: false,
+    goodToKnow: false,
   });
 
   const toggleItem = (id: string) => {
@@ -74,6 +78,21 @@ export default function WhatsIncluded({ onScrollToForm }: WhatsIncludedProps) {
       ]
     },
     {
+      id: 'bathroom',
+      title: 'Badrum',
+      items: [
+        'Rengöring av WC in- och utvändigt.',
+        'Rengöring av tvättställ och synliga rör.',
+        'Rengöring av badrumsskåp invändigt och utvändigt.',
+        'Rensning av golvbrunn.',
+        'Rengöring av dusch, blandare och duschslang.',
+        'Rengöring av kakel och våtrumsväggar.',
+        'Rengöring av badkar samt under badkar (kunden tar bort front/skyddsplåt).',
+        'Utvändig rengöring av vitvaror samt i tvättmedelsbehållaren på tvättmaskinen.',
+        'Rengöring av filtret i torktumlaren.'
+      ]
+    },
+    {
       id: 'livingRoom',
       title: 'Allrum och sovrum',
       items: [
@@ -99,18 +118,38 @@ export default function WhatsIncluded({ onScrollToForm }: WhatsIncludedProps) {
       ]
     },
     {
-      id: 'bathroom',
-      title: 'Badrum',
+      id: 'additionalServices',
+      title: 'Tilläggstjänster',
+      introText: 'Vi kan också hjälpa dig med:',
       items: [
-        'Rengöring av WC in- och utvändigt.',
-        'Rengöring av tvättställ och synliga rör.',
-        'Rengöring av badrumsskåp invändigt och utvändigt.',
-        'Rensning av golvbrunn.',
-        'Rengöring av dusch, blandare och duschslang.',
-        'Rengöring av kakel och våtrumsväggar.',
-        'Rengöring av badkar samt under badkar (kunden tar bort front/skyddsplåt).',
-        'Utvändig rengöring av vitvaror samt i tvättmedelsbehållaren på tvättmaskinen.',
-        'Rengöring av filtret i torktumlaren.'
+        'Städning av biytor som t.ex. förråd, garage och balkonger.',
+        'Fönsterputsning av inglasade balkonger (endast glasräcke och helt inglasad).'
+      ]
+    }
+  ];
+
+  const beforeStadningItems: ServiceAccordionItem[] = [
+    {
+      id: 'beforeWeArrive',
+      title: 'Detta behöver du göra innan vi kommer',
+      introText: 'För att vi ska kunna utföra flyttstädningen behöver du:',
+      items: [
+        'Tömma bostaden på möbler och personliga tillhörigheter.',
+        'Avfrosta och tömma kyl och frys.',
+        'Dra fram spis samt kyl/frys om städning bakom önskas.',
+        'Ta bort badkarsfront/skyddsplåt om städning under badkaret önskas.',
+        'Se till att el, vatten och fungerande belysning finns tillgängligt under hela städtillfället.'
+      ]
+    },
+    {
+      id: 'goodToKnow',
+      title: 'Bra att veta',
+      items: [
+        'Persienner ingår inte i flyttstädningen.',
+        'Demontering och rengöring av vattenlås ingår inte.',
+        'Klistermärken och dekaler tas inte bort.',
+        'Målade och tapetserade väggar tvättas inte.',
+        'Fönster som inte går att öppna med normal handkraft putsas inte.'
       ]
     }
   ];
@@ -135,6 +174,11 @@ export default function WhatsIncluded({ onScrollToForm }: WhatsIncludedProps) {
 
         {isOpen && (
           <div className="pt-2 pb-4 text-gray-700 pl-1">
+            {item.introText && (
+              <p className="text-xs sm:text-sm text-gray-700 mb-3">
+                {item.introText}
+              </p>
+            )}
             {item.subsections ? (
               <div className="space-y-5">
                 {item.subsections.map((sub, sIdx) => (
@@ -190,6 +234,19 @@ export default function WhatsIncluded({ onScrollToForm }: WhatsIncludedProps) {
           {/* Right Column */}
           <div className="space-y-1">
             {rightColumnServices.map(renderAccordionItem)}
+          </div>
+        </div>
+
+        {/* Bra att veta inför städningen Section */}
+        <div className="mt-12 md:mt-16 pt-8 border-t border-gray-100">
+          <div className="text-center max-w-3xl mx-auto mb-8 md:mb-10">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-[#1C2833] font-display">
+              Bra att veta inför städningen
+            </h3>
+          </div>
+
+          <div className="max-w-2xl mx-auto space-y-1 mb-14">
+            {beforeStadningItems.map(renderAccordionItem)}
           </div>
         </div>
 
