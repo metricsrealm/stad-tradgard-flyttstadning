@@ -56,6 +56,8 @@ const serviceConfigs: Record<ServiceKey, ServiceConfig> = {
 };
 
 const cities: CityConfig[] = [
+  { key: 'goteborg', name: 'Göteborg', county: 'Västra Götalands län' },
+  { key: 'jonkoping', name: 'Jönköping', county: 'Jönköpings län' },
   { key: 'boras', name: 'Borås', county: 'Västra Götalands län' },
   { key: 'gnosjo', name: 'Gnosjö', county: 'Jönköpings län' },
   { key: 'varnamo', name: 'Värnamo', county: 'Jönköpings län' }

@@ -7,32 +7,20 @@ export default function FAQ() {
 
   const faqs: FAQItem[] = [
     {
-      question: "Vad ingår i en flyttstädning?",
-      answer: "Vår flyttstädning följer mäklarnas och hyresvärdarnas officiella kontrollista. I vårt fasta pris ingår städning av alla rum, kök (rengöring av ugn, spishäll, kyl, frys in- och utvändigt, köksfläkt), badrum (avkalkning, rengöring av kakel & golvbrunn), samt komplett fönsterputsning (in- och utsida)."
+      question: "Vad ingår i flyttstädningen?",
+      answer: "Vår flyttstädning inkluderar grundlig rengöring av alla rum, kök, badrum, fönster och förvaring. Vi ser till att bostaden är redo för besiktning."
     },
     {
-      question: "Vad innebär er 100% besiktningsgaranti?",
-      answer: "Besiktningsgarantin innebär att om köparen, hyresvärden eller mäklaren mot förmodan anmärker på något vid avflyttningsbesiktningen, åtgärdar vi anmärkningen kostnadsfritt omgående. Du kan tryggt lämna över nycklarna."
+      question: "Erbjuder ni nöjd-kund-garanti?",
+      answer: "Ja, vi erbjuder nöjd-kund-garanti på all flyttstädning. Om något inte är godkänt åtgärdar vi det kostnadsfritt."
     },
     {
-      question: "Behöver jag vara hemma under flyttstädningen?",
-      answer: "Nej, du behöver inte vara hemma. De flesta av våra kunder lämnar över nyckeln i förväg, via nyckelgömma eller kod. När städningen är slutförd låser vi och meddelar dig."
+      question: "Hur lång tid tar en flyttstädning?",
+      answer: "Tiden varierar beroende på bostadens storlek, men en genomsnittlig lägenhet tar oss vanligtvis en arbetsdag att städa."
     },
     {
-      question: "Hur fungerar RUT-avdraget för flyttstädning?",
-      answer: "Du får 50% skatterabatt på arbetskostnaden via RUT-avdraget. Vi drar av beloppet direkt på fakturan och sköter all kontakt och administration med Skatteverket."
-    },
-    {
-      question: "Ingår fönsterputs och rengöring av ugn/kyl?",
-      answer: "Ja! I vårt fasta pris ingår både fönsterputsning (både in- och utsida) samt grundlig ur- och invändig rengöring av ugn, kylskåp, frys och köksfläkt utan dolda avgifter."
-    },
-    {
-      question: "Hur långt i förväg behöver jag boka mitt städdatum?",
-      answer: "Vi rekommenderar att boka 1-2 veckor i förväg för att säkra önskad dag vid skiftande månadsskiften. Har du bråttom kan vi ofta ordna akut flyttstädning med kort varsel."
-    },
-    {
-      question: "Vad behöver jag förbereda innan ni kommer?",
-      answer: "Bostaden ska vara tömd på möbler och kartonger. Se till att el och varmvatten är påslaget samt att frysen är avfrostad i förväg."
+      question: "Kan jag boka flyttstädning med kort varsel?",
+      answer: "Vi gör vårt bästa för att tillgodose akuta bokningar. Kontakta oss så snart som möjligt så hittar vi en lösning som passar dig."
     }
   ];
 

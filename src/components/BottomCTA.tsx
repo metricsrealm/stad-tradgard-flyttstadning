@@ -41,7 +41,7 @@ export default function BottomCTA({ onScrollToForm }: BottomCTAProps) {
 
           <a
             href="tel:0101753040"
-            className="w-full sm:w-auto bg-transparent border-[1.5px] border-white/55 hover:bg-white/10 text-white text-base md:text-lg font-bold px-8 py-3.5 rounded-full shadow-lg hover:shadow-2xl transition-all duration-150 flex items-center justify-center gap-2 min-h-[48px]"
+            className="w-full sm:w-auto bg-transparent border border-white/60 hover:bg-white/10 text-white text-base md:text-lg font-bold px-7 py-3 rounded-full shadow-xs hover:shadow-md transition-all duration-150 flex items-center justify-center gap-2.5 min-h-[48px]"
           >
             <Phone className="w-5 h-5 text-white" />
             <span>Ring: 010-175 30 40</span>

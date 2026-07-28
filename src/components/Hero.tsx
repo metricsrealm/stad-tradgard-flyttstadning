@@ -130,13 +130,11 @@ export default function Hero({
               
               <a
                 href="tel:0101753040"
-                className="inline-flex items-center justify-center gap-2 text-sm md:text-base font-bold text-white hover:text-brand transition-colors py-2 group min-h-[48px]"
+                className="inline-flex items-center justify-center gap-2.5 text-base font-bold text-white bg-white/10 hover:bg-white/20 border border-white/60 rounded-xl px-8 py-3.5 shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 min-h-[48px]"
                 id="hero-secondary-cta"
               >
-                <div className="p-2 rounded-full bg-white/10 backdrop-blur-md group-hover:bg-brand transition-colors flex items-center justify-center">
-                  <Phone className="w-4 h-4 text-white group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300" />
-                </div>
-                <span>eller ring direkt: 010-175 30 40</span>
+                <Phone className="w-5 h-5 text-white flex-shrink-0" />
+                <span className="font-bold text-white tracking-tight">eller ring direkt: 010-175 30 40</span>
               </a>
             </div>
           </div>

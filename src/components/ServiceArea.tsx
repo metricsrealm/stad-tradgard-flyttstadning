@@ -7,7 +7,7 @@ interface ServiceAreaProps {
 export default function ServiceArea({ currentCityName }: ServiceAreaProps) {
   // Let's divide these based on areas
   const fallbackCities = [
-    "Borås", "Värnamo", "Gnosjö", "Gislaved", "Anderstorp", "Hestra", 
+    "Göteborg", "Jönköping", "Borås", "Värnamo", "Gnosjö", "Gislaved", "Anderstorp", "Hestra", 
     "Hillerstorp", "Kulltorp", "Forsheda"
   ];
 
@@ -22,7 +22,7 @@ export default function ServiceArea({ currentCityName }: ServiceAreaProps) {
             Vi utför städning i {currentCityName ? currentCityName : "din region"}
           </h2>
           <p className="text-xs sm:text-sm text-[#5D6D7E] text-center">
-            Vi utför flyttstädning i Borås, Värnamo, Gnosjö och omkringliggande områden.
+            Vi utför flyttstädning i Göteborg, Jönköping, Borås, Värnamo, Gnosjö och omkringliggande områden.
           </p>
         </div>
 
