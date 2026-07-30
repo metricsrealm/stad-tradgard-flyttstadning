@@ -11,8 +11,8 @@ export default function FAQ() {
       answer: "Vår flyttstädning inkluderar grundlig rengöring av alla rum, kök, badrum, fönster och förvaring. Vi ser till att bostaden är redo för besiktning."
     },
     {
-      question: "Erbjuder ni nöjd-kund-garanti?",
-      answer: "Ja, vi erbjuder nöjd-kund-garanti på all flyttstädning. Om något inte är godkänt åtgärdar vi det kostnadsfritt."
+      question: "Får jag någon garanti på flyttstädningen?",
+      answer: "Självklart! Du får alltid fyra (4) dagars garanti på flyttstädning genom oss. Skulle något saknas åtgärdar vi det snabbt, utan extra kostnad."
     },
     {
       question: "Hur lång tid tar en flyttstädning?",
@@ -29,7 +29,7 @@ export default function FAQ() {
   };
 
   return (
-    <section className="py-12 md:py-16 bg-slate-50 border-b border-gray-200/80" id="faq-section">
+    <section className="py-12 md:py-16 bg-[#F8FAFC] border-b border-gray-200/80" id="faq-section">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-[560px] mx-auto mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1C2833] font-display">
@@ -46,27 +46,27 @@ export default function FAQ() {
             return (
               <div
                 key={idx}
-                className="bg-white rounded-[12px] border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-200"
+                className="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-200"
               >
                 <button
                   onClick={() => handleToggle(idx)}
-                  className="w-full text-left px-5 py-5 md:px-6 md:py-6 flex items-center justify-between gap-4 font-bold text-gray-900 hover:text-brand transition-colors cursor-pointer"
+                  className="w-full text-left px-6 py-5 md:px-7 md:py-5 flex items-center justify-between gap-4 font-bold text-gray-900 hover:text-brand transition-colors cursor-pointer"
                   aria-expanded={isOpen}
                 >
-                  <span className="text-base md:text-lg font-display text-[#1C2833] leading-tight">
+                  <span className="text-base md:text-lg font-bold font-display text-[#1C2833] leading-tight">
                     {faq.question}
                   </span>
-                  <div className={`p-1.5 rounded-full bg-gray-50 flex-shrink-0 text-[#EC4C44] transition-transform duration-250 ${isOpen ? 'rotate-180 bg-red-50' : ''}`}>
-                    <ChevronDown className="w-[18px] h-[18px]" />
+                  <div className={`p-2 rounded-full bg-red-50/80 flex-shrink-0 text-[#EC4C44] transition-transform duration-200 ${isOpen ? 'rotate-180 bg-red-100' : ''}`}>
+                    <ChevronDown className="w-4 h-4" />
                   </div>
                 </button>
 
                 <div
                   className={`transition-all duration-300 ease-in-out ${
-                    isOpen ? 'max-h-72 border-t border-gray-100' : 'max-h-0'
+                    isOpen ? 'max-h-72 opacity-100 border-t border-gray-100' : 'max-h-0 opacity-0'
                   } overflow-hidden`}
                 >
-                  <div className="p-5 md:p-6 text-sm md:text-base text-gray-650 leading-relaxed bg-[#FAFAF8]/40">
+                  <div className="px-6 py-5 md:px-7 md:py-6 text-sm md:text-base text-gray-600 leading-relaxed bg-white">
                     {faq.answer}
                   </div>
                 </div>
@@ -78,3 +78,4 @@ export default function FAQ() {
     </section>
   );
 }
+
