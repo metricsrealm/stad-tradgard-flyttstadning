@@ -17,24 +17,26 @@ export interface CityConfig {
 }
 
 export interface FormValues {
-  serviceType: string;
+  serviceType?: string;
   service_type?: string;
-  squareMeter: string;
-  square_meter?: string;
-  antalRum: string;
+  squareMeter?: string;
+  square_meter?: number | string;
+  antalRum?: string;
   antal_rum?: string;
-  city: string;
-  frequency: string;
-  name: string;
-  phone: string;
-  email: string;
+  city?: string;
+  address?: string;
+  frequency?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
   cleaningDate?: string;
   cleaning_date?: string;
+  move_date?: string;
   sprojsFonster?: boolean;
   inglasadAltan?: boolean;
   message?: string;
-  suggested_price?: string;
-  suggestedPrice?: string;
+  suggested_price?: number | string;
+  suggestedPrice?: number | string;
   gclid?: string;
   fbclid?: string;
   utm_source?: string;
@@ -42,6 +44,13 @@ export interface FormValues {
   utm_campaign?: string;
   user_agent?: string;
   user_ip?: string;
+  customer_id?: number | string;
+  action?: number;
+  contact_status?: string;
+  offer_service?: string;
+  potential_service?: string;
+  comment?: string;
+  button_click?: string;
 }
 
 export interface Testimonial {

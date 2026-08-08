@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Loader2, Mail, User, Phone, CheckCircle2 } from 'lucide-react';
+import { Check, Loader2, Mail, User, Phone, CheckCircle2, MapPin } from 'lucide-react';
 import { DatePicker } from './DatePicker';
 import { CityCombobox } from './CityCombobox';
 import type { FormValues } from '../types';
@@ -73,13 +73,32 @@ const pushLeadToDataLayer = (
 // Helper to submit the lead data with robust fallback
 const submitLeadToCRM = async (payload: FormValues) => {
   console.log("Attempting CRM submission via proxy...", payload);
+
+  const formattedPayload = {
+    name: payload.name || "",
+    phone: payload.phone || "",
+    email: payload.email || "",
+    square_meter: typeof payload.square_meter === 'number' 
+      ? payload.square_meter 
+      : (parseInt(String(payload.square_meter || payload.squareMeter)) || 70),
+    city: payload.city || "",
+    address: payload.address || payload.city || "",
+    move_date: payload.move_date || payload.cleaning_date || payload.cleaningDate || "",
+    message: payload.message || "",
+    suggested_price: typeof payload.suggested_price === 'number'
+      ? payload.suggested_price
+      : (parseInt(String(payload.suggested_price || payload.suggestedPrice || '').replace(/[^0-9]/g, '')) || 0),
+    gclid: payload.gclid || new URLSearchParams(window.location.search).get("gclid") || "",
+    fbclid: payload.fbclid || new URLSearchParams(window.location.search).get("fbclid") || ""
+  };
+
   try {
     const resp = await fetch("/api/submit-lead", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(formattedPayload)
     });
 
     if (resp.ok) {
@@ -93,24 +112,22 @@ const submitLeadToCRM = async (payload: FormValues) => {
     console.error("Proxy CRM submission failed/errored. Falling back to direct CRM POST...", err);
   }
 
-  // Fallback: Direct form post to the PHP endpoint
+  // Fallback: Direct POST to submit_quote.php with form urlencoded
   try {
-    console.log("Executing fallback direct POST to https://stadochtradgard.se/calculator_submit.php...");
-    
+    console.log("Executing fallback direct POST to http://stadochtradgard.se/dashboard/submit_quote.php...");
+
     const params = new URLSearchParams();
-    Object.entries(payload).forEach(([key, val]) => {
-      if (val !== undefined && val !== null) {
-        params.append(key, String(val));
-      }
+    Object.entries(formattedPayload).forEach(([k, v]) => {
+      params.append(k, String(v ?? ""));
     });
 
-    await fetch("https://stadochtradgard.se/calculator_submit.php", {
+    await fetch("http://stadochtradgard.se/dashboard/submit_quote.php", {
       method: "POST",
       mode: "no-cors",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
       },
-      body: params
+      body: params.toString()
     });
 
     console.log("Direct fallback POST completed successfully.");
@@ -150,13 +167,15 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
   const [name, setName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
   const [cleaningDate, setCleaningDate] = useState<string>('');
   const [message, setMessage] = useState<string>('');
 
-  // Field errors
+  // Field errors & tracked lead id
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasFiredLeadEvent, setHasFiredLeadEvent] = useState<boolean>(false);
+  const [customerId, setCustomerId] = useState<string | number | null>(null);
 
   // Step 4 animation words state
   const [loadingWord, setLoadingWord] = useState<string>('Beräknar ditt fasta pris...');
@@ -297,24 +316,32 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
     // Fire lead generation payload immediately in Step 3 so details are saved
     try {
+      const addons: string[] = [];
+      if (sprojsFonster) addons.push("Spröjsade fönster");
+      if (inglasadAltan) addons.push("Inglasad altan/balkong");
+      const fullMessage = addons.length > 0 
+        ? `Tillval: ${addons.join(', ')}.${message ? ' ' + message : ''}`
+        : message;
+
+      const gclidVal = utmParams.gclid || new URLSearchParams(window.location.search).get("gclid") || "";
+      const fbclidVal = utmParams.fbclid || new URLSearchParams(window.location.search).get("fbclid") || "";
+
       const payload: FormValues = {
-        serviceType: 'Flyttstädning',
-        service_type: 'Flyttstäd',
-        squareMeter: squareMeter || '70',
-        square_meter: squareMeter || '70',
-        city,
-        frequency: 'Engångsstädning',
         name,
         phone,
         email,
+        square_meter: parseInt(squareMeter) || 70,
+        squareMeter: squareMeter || '70',
+        city,
+        address: address || city || "",
         cleaningDate,
         cleaning_date: cleaningDate,
-        sprojsFonster,
-        inglasadAltan,
-        message,
-        suggested_price: flyttPriceInfo.formattedPrice,
+        move_date: cleaningDate,
+        message: fullMessage,
+        suggested_price: flyttPriceInfo.priceAfterRUT,
         suggestedPrice: flyttPriceInfo.formattedPrice,
-        ...utmParams
+        gclid: gclidVal,
+        fbclid: fbclidVal
       };
 
       console.log("Submitting Step 3 lead to CRM:", payload);
@@ -322,6 +349,9 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
       submitLeadToCRM(payload)
         .then((data) => {
           console.log("Step 3 CRM submission success:", data);
+          if (data?.data?.customer_id || data?.data?.id) {
+            setCustomerId(data.data.customer_id || data.data.id);
+          }
           if (!hasFiredLeadEvent) {
             pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
             setHasFiredLeadEvent(true);
@@ -368,30 +398,58 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
     try {
+      const addons: string[] = [];
+      if (sprojsFonster) addons.push("Spröjsade fönster");
+      if (inglasadAltan) addons.push("Inglasad altan/balkong");
+      const fullMessage = addons.length > 0 
+        ? `Tillval: ${addons.join(', ')}.${message ? ' ' + message : ''}`
+        : message;
+
+      const gclidVal = utmParams.gclid || new URLSearchParams(window.location.search).get("gclid") || "";
+      const fbclidVal = utmParams.fbclid || new URLSearchParams(window.location.search).get("fbclid") || "";
+
       const payload: FormValues = {
-        serviceType: 'Flyttstädning',
-        service_type: 'Flyttstäd',
-        squareMeter: squareMeter || '70',
-        square_meter: squareMeter || '70',
-        city,
-        frequency: 'Engångsstädning',
         name,
         phone,
         email,
+        square_meter: parseInt(squareMeter) || 70,
+        squareMeter: squareMeter || '70',
+        city,
+        address: address || city || "",
         cleaningDate,
         cleaning_date: cleaningDate,
-        sprojsFonster,
-        inglasadAltan,
-        message,
-        suggested_price: flyttPriceInfo.formattedPrice,
+        move_date: cleaningDate,
+        message: fullMessage,
+        suggested_price: flyttPriceInfo.priceAfterRUT,
         suggestedPrice: flyttPriceInfo.formattedPrice,
-        ...utmParams
+        gclid: gclidVal,
+        fbclid: fbclidVal,
+        button_click: "yes"
       };
 
       console.log("Submitting final payload to CRM...", payload);
 
       const data = await submitLeadToCRM(payload);
       console.log("CRM submission response:", data);
+
+      if (customerId || data?.data?.customer_id) {
+        const idToUpdate = customerId || data?.data?.customer_id;
+        fetch("/api/update-lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: 4,
+            customer_id: idToUpdate,
+            name,
+            email,
+            phone,
+            square_meter: parseInt(squareMeter) || 70,
+            city,
+            comment: fullMessage,
+            button_click: "yes"
+          })
+        }).catch(err => console.error("Update lead error:", err));
+      }
 
       if (!hasFiredLeadEvent) {
         pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
@@ -708,6 +766,23 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
             {errors.email && (
               <span className="error-text">⚠ {errors.email}</span>
             )}
+          </div>
+
+          {/* Address Field */}
+          <div className="space-y-1.5">
+            <label htmlFor="address" className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-gray-400" />
+              <span>Gatuadress <span className="text-gray-400 text-xs font-normal">(valfritt)</span></span>
+            </label>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              autoComplete="street-address"
+              placeholder="T.ex. Storgatan 1"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
           </div>
 
           <p className="privacy-note">
