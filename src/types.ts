@@ -51,6 +51,10 @@ export interface FormValues {
   potential_service?: string;
   comment?: string;
   button_click?: string;
+  is_button_click?: string;
+  user_type?: string;
+  utm_term?: string;
+  utm_content?: string;
 }
 
 export interface Testimonial {

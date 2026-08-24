@@ -74,6 +74,7 @@ const pushLeadToDataLayer = (
 const submitLeadToCRM = async (payload: FormValues) => {
   console.log("Attempting CRM submission via proxy...", payload);
 
+  const searchParams = new URLSearchParams(window.location.search);
   const formattedPayload = {
     name: payload.name || "",
     phone: payload.phone || "",
@@ -84,12 +85,23 @@ const submitLeadToCRM = async (payload: FormValues) => {
     city: payload.city || "",
     address: payload.address || payload.city || "",
     move_date: payload.move_date || payload.cleaning_date || payload.cleaningDate || "",
-    message: payload.message || "",
+    message: payload.message || payload.comment || "",
+    comment: payload.comment || payload.message || "",
     suggested_price: typeof payload.suggested_price === 'number'
       ? payload.suggested_price
       : (parseInt(String(payload.suggested_price || payload.suggestedPrice || '').replace(/[^0-9]/g, '')) || 0),
-    gclid: payload.gclid || new URLSearchParams(window.location.search).get("gclid") || "",
-    fbclid: payload.fbclid || new URLSearchParams(window.location.search).get("fbclid") || ""
+    button_click: payload.button_click || "no",
+    is_button_click: payload.is_button_click || payload.button_click || "no",
+    user_type: payload.user_type || "Privatperson",
+    service_type: payload.service_type || "Moving cleaning",
+    user_agent: payload.user_agent || navigator.userAgent || "",
+    utm_source: payload.utm_source || searchParams.get("utm_source") || "",
+    utm_medium: payload.utm_medium || searchParams.get("utm_medium") || "",
+    utm_campaign: payload.utm_campaign || searchParams.get("utm_campaign") || "",
+    utm_term: payload.utm_term || searchParams.get("utm_term") || "",
+    utm_content: payload.utm_content || searchParams.get("utm_content") || "",
+    gclid: payload.gclid || searchParams.get("gclid") || "",
+    fbclid: payload.fbclid || searchParams.get("fbclid") || ""
   };
 
   try {
@@ -147,7 +159,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tracking: { [key: string]: string } = {};
-    ['gclid', 'fbclid', 'utm_source', 'utm_medium', 'utm_campaign'].forEach((key) => {
+    ['gclid', 'fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].forEach((key) => {
       const val = params.get(key);
       if (val) tracking[key] = val;
     });
@@ -338,19 +350,31 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         cleaning_date: cleaningDate,
         move_date: cleaningDate,
         message: fullMessage,
+        comment: fullMessage,
         suggested_price: flyttPriceInfo.priceAfterRUT,
         suggestedPrice: flyttPriceInfo.formattedPrice,
+        button_click: "no",
+        is_button_click: "no",
+        user_agent: navigator.userAgent,
+        user_type: "Privatperson",
+        service_type: "Moving cleaning",
+        utm_source: utmParams.utm_source,
+        utm_medium: utmParams.utm_medium,
+        utm_campaign: utmParams.utm_campaign,
+        utm_term: utmParams.utm_term,
+        utm_content: utmParams.utm_content,
         gclid: gclidVal,
         fbclid: fbclidVal
       };
 
-      console.log("Submitting Step 3 lead to CRM:", payload);
+      console.log("Submitting Step 3 lead to CRM (button_click=no):", payload);
 
       submitLeadToCRM(payload)
         .then((data) => {
           console.log("Step 3 CRM submission success:", data);
-          if (data?.data?.customer_id || data?.data?.id) {
-            setCustomerId(data.data.customer_id || data.data.id);
+          const retrievedId = data?.id || data?.data?.id || data?.data?.customer_id;
+          if (retrievedId) {
+            setCustomerId(retrievedId);
           }
           if (!hasFiredLeadEvent) {
             pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
@@ -420,20 +444,30 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         cleaning_date: cleaningDate,
         move_date: cleaningDate,
         message: fullMessage,
+        comment: fullMessage,
         suggested_price: flyttPriceInfo.priceAfterRUT,
         suggestedPrice: flyttPriceInfo.formattedPrice,
+        button_click: "yes",
+        is_button_click: "yes",
+        user_agent: navigator.userAgent,
+        user_type: "Privatperson",
+        service_type: "Moving cleaning",
+        utm_source: utmParams.utm_source,
+        utm_medium: utmParams.utm_medium,
+        utm_campaign: utmParams.utm_campaign,
+        utm_term: utmParams.utm_term,
+        utm_content: utmParams.utm_content,
         gclid: gclidVal,
-        fbclid: fbclidVal,
-        button_click: "yes"
+        fbclid: fbclidVal
       };
 
-      console.log("Submitting final payload to CRM...", payload);
+      console.log("Submitting final payload to CRM (button_click=yes)...", payload);
 
       const data = await submitLeadToCRM(payload);
       console.log("CRM submission response:", data);
 
-      if (customerId || data?.data?.customer_id) {
-        const idToUpdate = customerId || data?.data?.customer_id;
+      const idToUpdate = customerId || data?.id || data?.data?.id || data?.data?.customer_id;
+      if (idToUpdate) {
         fetch("/api/update-lead", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -446,7 +480,17 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
             square_meter: parseInt(squareMeter) || 70,
             city,
             comment: fullMessage,
-            button_click: "yes"
+            message: fullMessage,
+            button_click: "yes",
+            is_button_click: "yes",
+            user_agent: navigator.userAgent,
+            utm_source: utmParams.utm_source || "",
+            utm_medium: utmParams.utm_medium || "",
+            utm_campaign: utmParams.utm_campaign || "",
+            utm_term: utmParams.utm_term || "",
+            utm_content: utmParams.utm_content || "",
+            gclid: gclidVal,
+            fbclid: fbclidVal
           })
         }).catch(err => console.error("Update lead error:", err));
       }
