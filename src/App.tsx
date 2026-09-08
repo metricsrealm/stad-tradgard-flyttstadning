@@ -3,6 +3,7 @@ import Header from './components/Header';
 import Hero from './components/Hero';
 import SocialProof from './components/SocialProof';
 import WhatsIncluded from './components/WhatsIncluded';
+import PricingTable from './components/PricingTable';
 import WhyChooseUs from './components/WhyChooseUs';
 import BeforeWeArrive from './components/BeforeWeArrive';
 import Testimonials from './components/Testimonials';
@@ -77,6 +78,7 @@ const getInitialCity = () => {
 export default function App() {
   const [activeService, setActiveService] = useState<ServiceKey>('flytt');
   const [activeCity, setActiveCity] = useState<string>(getInitialCity());
+  const [selectedSquareMeter, setSelectedSquareMeter] = useState<string>('');
   
   // Navigation / Tack Page views State
   const [isTackPage, setIsTackPage] = useState<boolean>(false);
@@ -224,6 +226,7 @@ export default function App() {
             currentCityName={activeCity}
             currentServiceLabel={serviceConfig.name}
             currentServiceKey={activeService}
+            initialSquareMeter={selectedSquareMeter}
             onScrollToForm={scrollToForm}
             onSubmitSuccess={handleSubmissionSuccess}
           />
@@ -231,6 +234,13 @@ export default function App() {
           <SocialProof />
 
           <WhatsIncluded onScrollToForm={scrollToForm} />
+
+          <PricingTable
+            onSelectSqm={(sqm) => {
+              setSelectedSquareMeter(String(sqm));
+              scrollToForm();
+            }}
+          />
 
           <WhyChooseUs />
 
