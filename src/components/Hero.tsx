@@ -108,7 +108,7 @@ export default function Hero({
               {[
                 "100% Besiktningsgaranti",
                 "RUT-avdrag Direkt (Du Betalar 50%)",
-                "Godkänd Enligt Mäklarens Checklista",
+                "Godkänd för besiktning",
                 "Fast Pris Inkl. Fönsterputs & Ugn/Kyl"
               ].map((tick, idx) => (
                 <div key={idx} className="flex items-center gap-2 text-sm font-semibold text-gray-50 bg-white/5 backdrop-blur-xs rounded-xl py-2 px-3 border border-white/10 shadow-xs">
