@@ -7,18 +7,6 @@ export default function FAQ() {
 
   const faqs: FAQItem[] = [
     {
-      question: "Hur fungerar prisberäkningen och RUT-avdraget?",
-      answer: "Alla priser i kalkylatorn och vår prislista redovisas efter 50% statligt RUT-avdrag, vilket är det belopp du som kund betalar. Staten står för resterande 50% av arbetskostnaden och vi administrerar avdraget direkt på din faktura."
-    },
-    {
-      question: "Gäller RUT-avdrag om städningen avser ett dödsbo?",
-      answer: "Nej, enligt Skatteverkets regler kan RUT-avdrag endast nyttjas av levande privatpersoner. Om städningen utförs för ett dödsbo kan avdraget inte användas, och ordinarie pris innan RUT-avdrag tillämpas. Du kan enkelt klicka i 'Dödsbo' i kalkylatorn för att se priset innan RUT."
-    },
-    {
-      question: "Vad gäller om bostaden är större än 200 kvm?",
-      answer: "För bostäder över 200 kvm beräknas priset via personlig offert. Fyll i bostadsytan och dina kontaktuppgifter så återkommer vi snabbt med ett skräddarsytt fast pris med bästa villkor."
-    },
-    {
       question: "Vad ingår i flyttstädningen?",
       answer: "Vår flyttstädning inkluderar grundlig rengöring av alla rum, kök, badrum, fönster och förvaring. Vi ser till att bostaden är redo för besiktning."
     },

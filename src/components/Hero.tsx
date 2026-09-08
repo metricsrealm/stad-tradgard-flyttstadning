@@ -7,7 +7,6 @@ interface HeroProps {
   currentCityName: string;
   currentServiceLabel: string;
   currentServiceKey: string;
-  initialSquareMeter?: string;
   onScrollToForm: () => void;
   onSubmitSuccess: (service: string, city: string) => void;
 }
@@ -16,7 +15,6 @@ export default function Hero({
   currentCityName,
   currentServiceLabel,
   currentServiceKey,
-  initialSquareMeter,
   onScrollToForm,
   onSubmitSuccess
 }: HeroProps) {
@@ -146,7 +144,6 @@ export default function Hero({
             <CalculatorForm
               initialService={currentServiceKey}
               initialCity={currentCityName}
-              initialSquareMeter={initialSquareMeter}
               onSubmitSuccess={onSubmitSuccess}
             />
           </div>

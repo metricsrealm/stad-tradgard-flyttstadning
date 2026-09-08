@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Loader2, Mail, User, Phone, CheckCircle2, MapPin, Info, Table, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, Loader2, Mail, User, Phone, CheckCircle2, MapPin } from 'lucide-react';
 import { DatePicker } from './DatePicker';
 import { CityCombobox } from './CityCombobox';
-import { FLYTT_PRICE_TABLE, getFlyttPriceInfo } from '../data/pricing';
 import type { FormValues } from '../types';
 
 interface CalculatorFormProps {
   initialService?: string;
   initialCity?: string;
-  initialSquareMeter?: string;
   onSubmitSuccess: (service: string, city: string) => void;
 }
 
@@ -152,7 +150,7 @@ const submitLeadToCRM = async (payload: FormValues) => {
   }
 };
 
-export default function CalculatorForm({ initialService, initialCity, initialSquareMeter, onSubmitSuccess }: CalculatorFormProps) {
+export default function CalculatorForm({ initialService, initialCity, onSubmitSuccess }: CalculatorFormProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
 
   // Cached UTM / Gclid params on load
@@ -170,14 +168,12 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
 
   // Form State
   const [serviceType, setServiceType] = useState<string>('flytt');
-  const [squareMeter, setSquareMeter] = useState<string>(initialSquareMeter || '');
+  const [squareMeter, setSquareMeter] = useState<string>('');
   const [city, setCity] = useState<string>(initialCity !== undefined ? initialCity : (getCityFromURL() || ''));
 
-  // Add-ons & options
+  // Add-ons
   const [sprojsFonster, setSprojsFonster] = useState<boolean>(false);
   const [inglasadAltan, setInglasadAltan] = useState<boolean>(false);
-  const [isDodsbo, setIsDodsbo] = useState<boolean>(false);
-  const [showPriceList, setShowPriceList] = useState<boolean>(false);
 
   // Customer contact info & preferences
   const [name, setName] = useState<string>('');
@@ -202,12 +198,6 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
   }, [initialService]);
 
   useEffect(() => {
-    if (initialSquareMeter) {
-      setSquareMeter(initialSquareMeter);
-    }
-  }, [initialSquareMeter]);
-
-  useEffect(() => {
     if (initialCity !== undefined) {
       setCity(initialCity);
     } else {
@@ -216,15 +206,56 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
     }
   }, [initialCity]);
 
-  // Calculate Flyttstädning price according to exact pricing table & RUT rules
-  // Customer pays price after 50% RUT-avdrag (middle column) if living;
-  // If estate/deceased (dödsbo), RUT cannot be used and customer pays before RUT.
-  // If > 200 kvm: needs to contact for price.
-  const flyttPriceInfo = getFlyttPriceInfo(squareMeter, {
-    sprojsFonster,
-    inglasadAltan,
-    isDodsbo
-  });
+  // Calculate Flyttstädning price according to exact table & interpolation rule
+  const calculateFlyttPrice = () => {
+    const table = [
+      { maxSqm: 30, price: 1500 },
+      { maxSqm: 50, price: 1900 },
+      { maxSqm: 60, price: 2000 },
+      { maxSqm: 70, price: 2500 },
+      { maxSqm: 80, price: 3000 },
+      { maxSqm: 90, price: 3200 },
+      { maxSqm: 100, price: 3500 },
+      { maxSqm: 110, price: 3900 },
+      { maxSqm: 120, price: 4100 },
+      { maxSqm: 130, price: 4500 },
+      { maxSqm: 140, price: 4700 },
+      { maxSqm: 150, price: 4900 },
+      { maxSqm: 160, price: 5400 },
+      { maxSqm: 170, price: 5900 },
+      { maxSqm: 180, price: 6400 },
+      { maxSqm: 190, price: 6600 },
+      { maxSqm: 200, price: 7200 },
+    ];
+
+    const sqmNumeric = parseInt(squareMeter) || 70;
+    
+    let basePrice = 2500;
+    if (sqmNumeric > 200) {
+      const extraSqm = sqmNumeric - 200;
+      basePrice = 7200 + Math.ceil(extraSqm / 10) * 350;
+    } else {
+      const match = table.find(item => sqmNumeric <= item.maxSqm);
+      if (match) {
+        basePrice = match.price;
+      } else {
+        basePrice = 7200;
+      }
+    }
+
+    // Add-on pricing logic (applied internally without displaying breakdowns)
+    if (sprojsFonster) basePrice += 300;
+    if (inglasadAltan) basePrice += 500;
+
+    return {
+      priceAfterRUT: basePrice,
+      priceBeforeRUT: basePrice * 2,
+      formattedPrice: `${basePrice.toLocaleString('sv-SE')} kr`,
+      sqmUsed: sqmNumeric
+    };
+  };
+
+  const flyttPriceInfo = calculateFlyttPrice();
 
   // Handle Step 1 Submit (Bostad)
   const handleStep1Submit = (e: React.FormEvent) => {
@@ -298,13 +329,11 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
     // Fire lead generation payload immediately in Step 3 so details are saved
     try {
       const addons: string[] = [];
-      if (sprojsFonster) addons.push("Spröjsade fönster (+300 kr)");
-      if (inglasadAltan) addons.push("Inglasad altan/balkong (+500 kr)");
-      if (isDodsbo) addons.push("Dödsbo (RUT-avdrag ej tillämpligt)");
-      if (flyttPriceInfo.isContactForPrice) addons.push(`Yta över 200 kvm (${flyttPriceInfo.sqmUsed} kvm - kontakt för pris)`);
+      if (sprojsFonster) addons.push("Spröjsade fönster");
+      if (inglasadAltan) addons.push("Inglasad altan/balkong");
       const fullMessage = addons.length > 0 
-        ? `Uppdrag: ${addons.join(', ')}.${message ? ' ' + message : ''}`
-        : (message || "");
+        ? `Tillval: ${addons.join(', ')}.${message ? ' ' + message : ''}`
+        : message;
 
       const gclidVal = utmParams.gclid || new URLSearchParams(window.location.search).get("gclid") || "";
       const fbclidVal = utmParams.fbclid || new URLSearchParams(window.location.search).get("fbclid") || "";
@@ -322,12 +351,12 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
         move_date: cleaningDate,
         message: fullMessage,
         comment: fullMessage,
-        suggested_price: flyttPriceInfo.isContactForPrice ? 0 : flyttPriceInfo.effectivePrice,
-        suggestedPrice: flyttPriceInfo.isContactForPrice ? "Kontakta för pris" : flyttPriceInfo.formattedPrice,
+        suggested_price: flyttPriceInfo.priceAfterRUT,
+        suggestedPrice: flyttPriceInfo.formattedPrice,
         button_click: "no",
         is_button_click: "no",
         user_agent: navigator.userAgent,
-        user_type: isDodsbo ? "Dödsbo" : "Privatperson",
+        user_type: "Privatperson",
         service_type: "Moving cleaning",
         utm_source: utmParams.utm_source,
         utm_medium: utmParams.utm_medium,
@@ -367,9 +396,11 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
   // Step 4 sequence auto-advancer (Loader animation)
   useEffect(() => {
     if (step === 4) {
-      const words = flyttPriceInfo.isContactForPrice
-        ? ["Sedan 1998", "100% Besiktningsgaranti", "Förbereder prisförslag"]
-        : ["Sedan 1998", "100% Besiktningsgaranti", "Fast pris efter RUT-avdrag"];
+      const words = [
+        "Sedan 1998",
+        "100% Besiktningsgaranti",
+        "Fast pris efter RUT-avdrag"
+      ];
       let currentWordIdx = 0;
       setLoadingWord(words[0]);
 
@@ -385,20 +416,18 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
 
       return () => clearInterval(interval);
     }
-  }, [step, flyttPriceInfo.isContactForPrice]);
+  }, [step]);
 
   // Final submit (Step 5 -> Step 6)
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
     try {
       const addons: string[] = [];
-      if (sprojsFonster) addons.push("Spröjsade fönster (+300 kr)");
-      if (inglasadAltan) addons.push("Inglasad altan/balkong (+500 kr)");
-      if (isDodsbo) addons.push("Dödsbo (RUT-avdrag ej tillämpligt)");
-      if (flyttPriceInfo.isContactForPrice) addons.push(`Yta över 200 kvm (${flyttPriceInfo.sqmUsed} kvm - kontakt för pris)`);
+      if (sprojsFonster) addons.push("Spröjsade fönster");
+      if (inglasadAltan) addons.push("Inglasad altan/balkong");
       const fullMessage = addons.length > 0 
-        ? `Uppdrag: ${addons.join(', ')}.${message ? ' ' + message : ''}`
-        : (message || "");
+        ? `Tillval: ${addons.join(', ')}.${message ? ' ' + message : ''}`
+        : message;
 
       const gclidVal = utmParams.gclid || new URLSearchParams(window.location.search).get("gclid") || "";
       const fbclidVal = utmParams.fbclid || new URLSearchParams(window.location.search).get("fbclid") || "";
@@ -416,12 +445,12 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
         move_date: cleaningDate,
         message: fullMessage,
         comment: fullMessage,
-        suggested_price: flyttPriceInfo.isContactForPrice ? 0 : flyttPriceInfo.effectivePrice,
-        suggestedPrice: flyttPriceInfo.isContactForPrice ? "Kontakta för pris" : flyttPriceInfo.formattedPrice,
+        suggested_price: flyttPriceInfo.priceAfterRUT,
+        suggestedPrice: flyttPriceInfo.formattedPrice,
         button_click: "yes",
         is_button_click: "yes",
         user_agent: navigator.userAgent,
-        user_type: isDodsbo ? "Dödsbo" : "Privatperson",
+        user_type: "Privatperson",
         service_type: "Moving cleaning",
         utm_source: utmParams.utm_source,
         utm_medium: utmParams.utm_medium,
@@ -452,11 +481,9 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
             city,
             comment: fullMessage,
             message: fullMessage,
-            suggested_price: flyttPriceInfo.isContactForPrice ? 0 : flyttPriceInfo.effectivePrice,
             button_click: "yes",
             is_button_click: "yes",
             user_agent: navigator.userAgent,
-            user_type: isDodsbo ? "Dödsbo" : "Privatperson",
             utm_source: utmParams.utm_source || "",
             utm_medium: utmParams.utm_medium || "",
             utm_campaign: utmParams.utm_campaign || "",
@@ -576,20 +603,9 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
 
           {/* Square Meters (Bostadsyta kvm) */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="squareMeter">
-                Bostadsyta (kvm) <span className="text-red-500">*</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowPriceList(!showPriceList)}
-                className="text-[11px] font-bold text-brand hover:underline inline-flex items-center gap-1 cursor-pointer"
-              >
-                <Table className="w-3 h-3" />
-                <span>{showPriceList ? 'Dölj prislista' : 'Se prislista (10–200 kvm)'}</span>
-                {showPriceList ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
-            </div>
+            <label htmlFor="squareMeter">
+              Bostadsyta (kvm) <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
               id="squareMeter"
@@ -607,72 +623,6 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
             />
             {errors.squareMeter && (
               <span className="error-text">⚠ {errors.squareMeter}</span>
-            )}
-
-            {/* Dynamic real-time calculation preview badge */}
-            {Boolean(squareMeter && parseInt(squareMeter) > 0) && (
-              parseInt(squareMeter) > 200 ? (
-                <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-start gap-2 mt-1.5">
-                  <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Över 200 kvm:</strong> För ytor över 200 kvm behöver du kontakta oss för pris. Fyll i dina uppgifter så återkommer vi direkt med en skräddarsydd offert med 50% RUT-avdrag!
-                  </span>
-                </div>
-              ) : (
-                <div className="text-xs text-emerald-900 bg-emerald-50/90 border border-emerald-200 rounded-xl p-2.5 flex items-center justify-between mt-1.5">
-                  <span className="font-medium text-emerald-800">
-                    {!isDodsbo ? '✓ Pris efter 50% RUT-avdrag (kundpris):' : 'Pris innan RUT-avdrag (Dödsbo):'}
-                  </span>
-                  <span className="font-black text-brand text-sm">
-                    {flyttPriceInfo.formattedPrice}
-                  </span>
-                </div>
-              )
-            )}
-
-            {/* Expandable in-form full pricing table */}
-            {showPriceList && (
-              <div className="mt-2 bg-white rounded-xl border border-gray-200 p-3 shadow-sm text-xs space-y-2">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-1.5 font-bold text-gray-700">
-                  <span>Pristabell för flyttstädning</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">
-                    Kunden betalar pris efter RUT
-                  </span>
-                </div>
-                <div className="max-h-48 overflow-y-auto divide-y divide-gray-100 pr-1">
-                  <div className="grid grid-cols-3 py-1 font-bold text-[11px] text-gray-500 uppercase tracking-wider">
-                    <span>KVM</span>
-                    <span className="text-brand">Efter RUT</span>
-                    <span>Innan RUT</span>
-                  </div>
-                  {FLYTT_PRICE_TABLE.map((tier, idx) => {
-                    const isSelected = parseInt(squareMeter) <= tier.maxSqm && (idx === 0 || parseInt(squareMeter) > FLYTT_PRICE_TABLE[idx - 1].maxSqm);
-                    return (
-                      <div
-                        key={tier.maxSqm}
-                        onClick={() => setSquareMeter(String(tier.maxSqm))}
-                        className={`grid grid-cols-3 py-1.5 px-1 rounded cursor-pointer transition-colors ${
-                          isSelected ? 'bg-red-50/80 font-black text-brand' : 'hover:bg-gray-50 text-gray-800'
-                        }`}
-                      >
-                        <span>{tier.kvmLabel} kvm</span>
-                        <span className="font-bold text-brand">{tier.priceAfterRUT.toLocaleString('sv-SE')} kr</span>
-                        <span className="text-gray-500">{tier.priceBeforeRUT.toLocaleString('sv-SE')} kr</span>
-                      </div>
-                    );
-                  })}
-                  <div
-                    onClick={() => setSquareMeter('220')}
-                    className="grid grid-cols-3 py-1.5 px-1 bg-amber-50/80 text-amber-950 font-bold rounded cursor-pointer hover:bg-amber-100/70 transition-colors"
-                  >
-                    <span>Över 200 kvm</span>
-                    <span colSpan={2} className="col-span-2 text-amber-900">Kontakta för pris</span>
-                  </div>
-                </div>
-                <p className="text-[10px] text-gray-500 leading-tight pt-1 border-t border-gray-100">
-                  * Kunden betalar priset i mitten (efter 50% RUT-avdrag). Vid dödsbo kan RUT-avdrag enligt lag ej nyttjas, då gäller pris innan RUT.
-                </p>
-              </div>
             )}
           </div>
 
@@ -692,49 +642,6 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
             />
             {errors.city && (
               <span className="error-text">⚠ {errors.city}</span>
-            )}
-          </div>
-
-          {/* RUT / Dödsbo Selection */}
-          <div className="space-y-1.5 pt-2 border-t border-gray-150">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-gray-700">
-                RUT-avdrag / Beställare
-              </label>
-              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                50% statligt avdrag
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setIsDodsbo(false)}
-                className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all text-left flex items-center justify-between cursor-pointer ${
-                  !isDodsbo
-                    ? 'border-brand bg-red-50/50 text-brand ring-1 ring-brand'
-                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span>Privatperson (50% RUT)</span>
-                {!isDodsbo && <Check className="w-3.5 h-3.5 text-brand flex-shrink-0" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsDodsbo(true)}
-                className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all text-left flex items-center justify-between cursor-pointer ${
-                  isDodsbo
-                    ? 'border-brand bg-red-50/50 text-brand ring-1 ring-brand'
-                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span>Dödsbo (Utan RUT)</span>
-                {isDodsbo && <Check className="w-3.5 h-3.5 text-brand flex-shrink-0" />}
-              </button>
-            </div>
-            {isDodsbo && (
-              <p className="text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 leading-tight">
-                ℹ️ Enligt Skatteverkets regler kan RUT-avdrag endast nyttjas av levande personer. Vid städning av dödsbo gäller ordinarie pris innan RUT.
-              </p>
             )}
           </div>
 
@@ -1039,221 +946,76 @@ export default function CalculatorForm({ initialService, initialCity, initialSqu
       {/* STEP 5: STREAMLINED PRICE SUMMARY SCREEN */}
       {step === 5 && (
         <div className="space-y-6" id="pricing-estimate">
-          {flyttPriceInfo.isContactForPrice ? (
-            <>
-              <div className="text-center space-y-1">
-                <span className="inline-block bg-amber-100 text-amber-900 text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider mb-1">
-                  Yta över 200 kvm
-                </span>
-                <h3 className="text-xl md:text-2xl font-black text-gray-900 font-display">
-                  Kontakta oss för pris
-                </h3>
-                <p className="text-xs text-gray-500">
-                  {squareMeter} kvm bostadsyta{city ? ` i ${city}` : ''}
-                </p>
+          <div className="text-center space-y-1">
+            <span className="inline-block bg-emerald-100 text-emerald-800 text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider mb-1">
+              Inga dolda avgifter
+            </span>
+            <h3 className="text-xl md:text-2xl font-black text-gray-900 font-display">
+              Ditt fasta pris efter RUT
+            </h3>
+            <p className="text-xs text-gray-500">
+              {squareMeter || 70} kvm bostadsyta{city ? ` i ${city}` : ''}
+            </p>
+          </div>
+
+          {/* Large Price Display */}
+          <div className="bg-gray-50/80 rounded-2xl p-5 border border-gray-200/80 text-center space-y-1">
+            <div className="text-4xl md:text-5xl font-black text-brand font-display tracking-tight" id="price">
+              {flyttPriceInfo.formattedPrice}
+            </div>
+            <p className="text-[11px] text-gray-500 font-medium pt-1">
+              Inkl. moms & 50% RUT-avdrag direkt på fakturan
+            </p>
+          </div>
+
+          {/* Included in your move-out cleaning checklist */}
+          <div className="space-y-2.5 bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl">
+            <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider text-center">
+              Detta ingår alltid i ditt pris:
+            </h4>
+            <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 font-semibold">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Komplett flyttstädning</span>
               </div>
-
-              {/* Contact for price box */}
-              <div className="bg-amber-50/70 rounded-2xl p-5 border border-amber-200 text-center space-y-3">
-                <div className="text-2xl md:text-3xl font-black text-amber-950 font-display tracking-tight" id="price">
-                  Offert vid förfrågan
-                </div>
-                <p className="text-xs text-gray-700 max-w-sm mx-auto leading-relaxed">
-                  För bostäder större än 200 kvm behöver du kontakta oss för pris. Vi räknar fram en anpassad offert med bästa möjliga fasta pris och 50% RUT-avdrag.
-                </p>
-                <div className="pt-1">
-                  <a
-                    href="tel:0101753040"
-                    className="inline-flex items-center justify-center gap-2 bg-white border border-amber-300 hover:bg-amber-100/50 text-amber-950 font-bold px-5 py-2.5 rounded-xl shadow-xs transition-colors text-sm"
-                  >
-                    <Phone className="w-4 h-4 text-brand" />
-                    <span>Ring direkt: 010-175 30 40</span>
-                  </a>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Fönsterputs</span>
               </div>
-
-              {/* Included in your move-out cleaning checklist */}
-              <div className="space-y-2.5 bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl">
-                <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider text-center">
-                  Detta ingår alltid i ditt pris:
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 font-semibold">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Komplett flyttstädning</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Fönsterputs</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Ugn & kyl/frys</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Kök & badrum</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 col-span-2 justify-center pt-1 text-emerald-800 font-bold border-t border-emerald-100">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>100% Besiktningsgaranti</span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Ugn & kyl/frys</span>
               </div>
-
-              <input type="hidden" name="suggested_price" id="suggested_price" value="Kontakta för pris" />
-              <input type="hidden" name="button_click" id="button_click" value="1" />
-
-              {/* Single Strong CTA Button */}
-              <button
-                onClick={handleFinalSubmit}
-                disabled={isSubmitting}
-                className="w-full bg-brand hover:bg-brand-hover text-white h-12 rounded-xl text-base font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
-                id="contact_button"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Skickar förfrågan...</span>
-                  </>
-                ) : (
-                  <span>Begär personlig offert</span>
-                )}
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="text-center space-y-1">
-                <span className="inline-block bg-emerald-100 text-emerald-800 text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider mb-1">
-                  Inga dolda avgifter
-                </span>
-                <h3 className="text-xl md:text-2xl font-black text-gray-900 font-display">
-                  {isDodsbo ? "Ditt fasta pris innan RUT-avdrag (Dödsbo)" : "Ditt fasta pris efter RUT-avdrag"}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  {squareMeter || 70} kvm bostadsyta{city ? ` i ${city}` : ''}
-                </p>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Kök & badrum</span>
               </div>
-
-              {/* Large Price Display with clear Efter RUT / Innan RUT indication */}
-              <div className="bg-gray-50/80 rounded-2xl p-5 border border-gray-200/80 text-center space-y-2.5">
-                <div className="text-4xl md:text-5xl font-black text-brand font-display tracking-tight" id="price">
-                  {flyttPriceInfo.formattedPrice}
-                </div>
-                
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white border border-gray-200 shadow-2xs">
-                  <span className={!isDodsbo ? "text-emerald-700" : "text-amber-800"}>
-                    {!isDodsbo ? "✓ Priset är efter 50% RUT-avdrag (det du betalar)" : "Pris innan RUT-avdrag (Dödsbo)"}
-                  </span>
-                </div>
-
-                <p className="text-xs text-gray-700 font-medium max-w-sm mx-auto">
-                  {!isDodsbo 
-                    ? "Kunden betalar detta pris efter 50% RUT-avdrag. Resterande 50% betalar staten direkt till oss via Skatteverket." 
-                    : "RUT-avdrag kan enligt lag ej nyttjas vid dödsbo. Ordinarie pris innan RUT-avdrag tillämpas."}
-                </p>
-
-                {/* Clear Price Comparison Breakdown (efter RUT vs innan RUT) */}
-                <div className="mt-3 pt-3 border-t border-gray-200/80 text-left space-y-2 bg-white p-3.5 rounded-xl">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-700 font-medium">Pris efter RUT-avdrag (det kunden betalar):</span>
-                    <span className={`font-bold ${!isDodsbo ? 'text-brand text-sm' : 'text-gray-700'}`}>
-                      {flyttPriceInfo.formattedPriceAfterRUT}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-700 font-medium">Innan RUT-avdrag (ordinarie pris):</span>
-                    <span className={`font-semibold ${isDodsbo ? 'text-brand text-sm font-bold' : 'text-gray-500'}`}>
-                      {flyttPriceInfo.formattedPriceBeforeRUT}
-                    </span>
-                  </div>
-                  {!isDodsbo && (
-                    <div className="flex items-center justify-between text-xs text-emerald-800 bg-emerald-50 px-2.5 py-1.5 rounded-lg font-semibold border border-emerald-100">
-                      <span>Statligt RUT-avdrag (50% avdrag som staten betalar):</span>
-                      <span className="font-bold">- {flyttPriceInfo.formattedDiscount}</span>
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-1.5 col-span-2 justify-center pt-1 text-emerald-800 font-bold border-t border-emerald-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>100% Besiktningsgaranti</span>
               </div>
+            </div>
+          </div>
 
-              {/* Prominent RUT Clarification Notice Box */}
-              <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-3.5 text-left text-xs space-y-2">
-                <div className="flex items-center gap-1.5 font-bold text-blue-950">
-                  <Info className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span>Viktig information om RUT-avdrag</span>
-                </div>
-                <p className="text-gray-700 leading-relaxed text-[11px] sm:text-xs">
-                  Priset som visas är beräknat <strong>efter 50% RUT-avdrag</strong>, vilket är vad kunden betalar. Resterande 50% betalas av staten och dras av direkt på din faktura utan krångel.
-                </p>
-                <p className="text-gray-700 text-[11px] leading-relaxed pt-1.5 border-t border-blue-100">
-                  <strong>Regler för dödsbo:</strong> RUT-avdrag gäller enbart för levande privatpersoner. Om städningen avser en person som avlidit (dödsbo) kan RUT-avdraget inte användas enligt Skatteverkets regler – då gäller pris innan RUT-avdrag ({flyttPriceInfo.formattedPriceBeforeRUT}).
-                </p>
-                <div className="pt-1.5 flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-gray-700">Gäller städningen ett dödsbo?</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsDodsbo(!isDodsbo)}
-                    className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
-                      isDodsbo
-                        ? 'bg-blue-900 text-white border-blue-900 shadow-2xs'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
-                    }`}
-                  >
-                    {isDodsbo ? 'Ja (visar innan RUT)' : 'Nej (visar efter RUT)'}
-                  </button>
-                </div>
-              </div>
+          <input type="hidden" name="suggested_price" id="suggested_price" value={flyttPriceInfo.formattedPrice} />
+          <input type="hidden" name="button_click" id="button_click" value="1" />
 
-              {/* Included in your move-out cleaning checklist */}
-              <div className="space-y-2.5 bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl">
-                <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider text-center">
-                  Detta ingår alltid i ditt pris:
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 font-semibold">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Komplett flyttstädning</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Fönsterputs</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Ugn & kyl/frys</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Kök & badrum</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 col-span-2 justify-center pt-1 text-emerald-800 font-bold border-t border-emerald-100">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>100% Besiktningsgaranti</span>
-                  </div>
-                </div>
-              </div>
-
-              <input type="hidden" name="suggested_price" id="suggested_price" value={flyttPriceInfo.formattedPrice} />
-              <input type="hidden" name="button_click" id="button_click" value="1" />
-
-              {/* Single Strong CTA Button */}
-              <button
-                onClick={handleFinalSubmit}
-                disabled={isSubmitting}
-                className="w-full bg-brand hover:bg-brand-hover text-white h-12 rounded-xl text-base font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
-                id="contact_button"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Skickar bokning...</span>
-                  </>
-                ) : (
-                  <span>Boka flyttstädning</span>
-                )}
-              </button>
-            </>
-          )}
+          {/* Single Strong CTA Button */}
+          <button
+            onClick={handleFinalSubmit}
+            disabled={isSubmitting}
+            className="w-full bg-brand hover:bg-brand-hover text-white h-12 rounded-xl text-base font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
+            id="contact_button"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Skickar bokning...</span>
+              </>
+            ) : (
+              <span>Boka flyttstädning</span>
+            )}
+          </button>
 
           {/* Trust badges below CTA */}
           <div className="trust-row flex justify-center items-center gap-3 text-xs text-emerald-700 font-semibold pt-1 flex-wrap">

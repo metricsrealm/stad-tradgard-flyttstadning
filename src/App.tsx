@@ -3,11 +3,8 @@ import Header from './components/Header';
 import Hero from './components/Hero';
 import SocialProof from './components/SocialProof';
 import WhatsIncluded from './components/WhatsIncluded';
-import PricingTable from './components/PricingTable';
 import WhyChooseUs from './components/WhyChooseUs';
-import BeforeWeArrive from './components/BeforeWeArrive';
 import Testimonials from './components/Testimonials';
-
 import ServiceArea from './components/ServiceArea';
 import FAQ from './components/FAQ';
 import BottomCTA from './components/BottomCTA';
@@ -15,7 +12,6 @@ import Footer from './components/Footer';
 import Tack from './components/Tack';
 import PrivacyModal from './components/PrivacyModal';
 import type { ServiceKey, ServiceConfig, CityConfig } from './types';
-import { Target, Map, Info, Star } from 'lucide-react';
 
 const serviceConfigs: Record<ServiceKey, ServiceConfig> = {
   hem: {
@@ -78,7 +74,6 @@ const getInitialCity = () => {
 export default function App() {
   const [activeService, setActiveService] = useState<ServiceKey>('flytt');
   const [activeCity, setActiveCity] = useState<string>(getInitialCity());
-  const [selectedSquareMeter, setSelectedSquareMeter] = useState<string>('');
   
   // Navigation / Tack Page views State
   const [isTackPage, setIsTackPage] = useState<boolean>(false);
@@ -226,7 +221,6 @@ export default function App() {
             currentCityName={activeCity}
             currentServiceLabel={serviceConfig.name}
             currentServiceKey={activeService}
-            initialSquareMeter={selectedSquareMeter}
             onScrollToForm={scrollToForm}
             onSubmitSuccess={handleSubmissionSuccess}
           />
@@ -235,17 +229,7 @@ export default function App() {
 
           <WhatsIncluded onScrollToForm={scrollToForm} />
 
-          <PricingTable
-            onSelectSqm={(sqm) => {
-              setSelectedSquareMeter(String(sqm));
-              scrollToForm();
-            }}
-          />
-
           <WhyChooseUs />
-
-          <BeforeWeArrive />
-
           <Testimonials />
 
           <ServiceArea currentCityName={activeCity} />
