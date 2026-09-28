@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Loader2, Mail, User, Phone, CheckCircle2, MapPin } from 'lucide-react';
+import { Check, Loader2, Mail, User, Phone, CheckCircle2, MapPin, Info } from 'lucide-react';
 import { DatePicker } from './DatePicker';
 import { CityCombobox } from './CityCombobox';
 import type { FormValues } from '../types';
@@ -243,10 +243,8 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
       }
     }
 
-    // Add-on pricing logic (applied internally without displaying breakdowns)
-    if (sprojsFonster) basePrice += 300;
-    if (inglasadAltan) basePrice += 500;
-
+    // Base price remains the original calculated price based on sqm
+    // (Do not add 300, 500, or 800 kr to the total price when add-ons are chosen)
     return {
       priceAfterRUT: basePrice,
       priceBeforeRUT: basePrice * 2,
@@ -256,6 +254,34 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
   };
 
   const flyttPriceInfo = calculateFlyttPrice();
+
+  // Dynamic add-on notice displayed with the final price depending on customer's selection
+  const getAddonNotice = () => {
+    if (sprojsFonster && inglasadAltan) {
+      return {
+        badge: "Tillägg tillkommer för både fönster och balkong",
+        title: "Extra avgift tillkommer för fönster och balkong",
+        description: "Observera: En extra avgift tillkommer för både spröjsade fönster och inglasad altan/balkong utöver det ordinarie priset."
+      };
+    }
+    if (sprojsFonster) {
+      return {
+        badge: "Tillägg tillkommer för fönster",
+        title: "Extra avgift tillkommer för fönster",
+        description: "Observera: En extra avgift tillkommer för spröjsade fönster utöver det ordinarie priset."
+      };
+    }
+    if (inglasadAltan) {
+      return {
+        badge: "Tillägg tillkommer för balkong",
+        title: "Extra avgift tillkommer för balkong",
+        description: "Observera: En extra avgift tillkommer för inglasad altan/balkong utöver det ordinarie priset."
+      };
+    }
+    return null;
+  };
+
+  const addonNotice = getAddonNotice();
 
   // Handle Step 1 Submit (Bostad)
   const handleStep1Submit = (e: React.FormEvent) => {
@@ -329,8 +355,8 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
     // Fire lead generation payload immediately in Step 3 so details are saved
     try {
       const addons: string[] = [];
-      if (sprojsFonster) addons.push("Spröjsade fönster");
-      if (inglasadAltan) addons.push("Inglasad altan/balkong");
+      if (sprojsFonster) addons.push("Spröjsade fönster (extra tillägg tillkommer)");
+      if (inglasadAltan) addons.push("Inglasad altan/balkong (extra tillägg tillkommer)");
       const fullMessage = addons.length > 0 
         ? `Tillval: ${addons.join(', ')}.${message ? ' ' + message : ''}`
         : message;
@@ -423,8 +449,8 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
     setIsSubmitting(true);
     try {
       const addons: string[] = [];
-      if (sprojsFonster) addons.push("Spröjsade fönster");
-      if (inglasadAltan) addons.push("Inglasad altan/balkong");
+      if (sprojsFonster) addons.push("Spröjsade fönster (extra tillägg tillkommer)");
+      if (inglasadAltan) addons.push("Inglasad altan/balkong (extra tillägg tillkommer)");
       const fullMessage = addons.length > 0 
         ? `Tillval: ${addons.join(', ')}.${message ? ' ' + message : ''}`
         : message;
@@ -647,9 +673,16 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
           {/* Additional Services UI (Eventuella tillval) - Compact Selectable Cards */}
           <div className="space-y-2 pt-2 border-t border-gray-150">
-            <label className="block text-xs font-semibold text-gray-700">
-              Eventuella tillval
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-gray-700">
+                Eventuella tillval
+              </label>
+              {(sprojsFonster || inglasadAltan) && (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                  Extra avgift tillkommer
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {/* Card 1: Spröjsade fönster */}
               <div
@@ -671,7 +704,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
                     Spröjsade fönster
                   </span>
                   <span className="text-[11px] text-gray-500 mt-0.5">
-                    Tillägg
+                    Tillägg tillkommer
                   </span>
                 </div>
               </div>
@@ -696,7 +729,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
                     Inglasad altan / balkong
                   </span>
                   <span className="text-[11px] text-gray-500 mt-0.5">
-                    Tillägg
+                    Tillägg tillkommer
                   </span>
                 </div>
               </div>
@@ -966,7 +999,32 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
             <p className="text-[11px] text-gray-500 font-medium pt-1">
               Inkl. moms & 50% RUT-avdrag direkt på fakturan
             </p>
+            {addonNotice && (
+              <div className="pt-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100/90 text-amber-900 border border-amber-300/80">
+                  <Info className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
+                  {addonNotice.badge}
+                </span>
+              </div>
+            )}
           </div>
+
+          {/* Dynamic note with final price: extra charge will be added depending on customer selection */}
+          {addonNotice && (
+            <div className="bg-amber-50/95 border-2 border-amber-200/90 rounded-2xl p-4 text-left flex items-start gap-3 shadow-xs">
+              <div className="w-7 h-7 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Info className="w-4 h-4 text-amber-800" />
+              </div>
+              <div className="space-y-1 text-xs">
+                <h4 className="font-bold text-amber-950 text-sm">
+                  {addonNotice.title}
+                </h4>
+                <p className="text-amber-900 leading-relaxed">
+                  {addonNotice.description}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Included in your move-out cleaning checklist */}
           <div className="space-y-2.5 bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl">
@@ -1049,6 +1107,15 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
           <h2 className="text-xl font-bold text-gray-900 font-display">
             Tack! Vi kontaktar dig inom kort med din bokningsbekräftelse.
           </h2>
+          {addonNotice && (
+            <div className="bg-amber-50/90 border border-amber-200/90 rounded-xl p-3 text-xs text-amber-900 max-w-sm mx-auto text-left flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">{addonNotice.title}</p>
+                <p className="text-amber-800 text-[11px] mt-0.5">Vi har noterat dina önskemål och återkommer med fullständigt underlag.</p>
+              </div>
+            </div>
+          )}
           <p className="text-sm text-gray-600">
             Vill du prata direkt? Ring oss på{' '}
             <a href="tel:0101753040" className="text-brand font-bold hover:underline">
