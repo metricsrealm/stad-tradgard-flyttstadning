@@ -158,6 +158,28 @@ export default function App() {
       : `Professionell flyttstädning med garanti | Städ & Trädgårdsservice`;
   }, [activeCity]);
 
+  // Global scroll reveal observer for smooth entrance animations
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+          }
+        });
+      },
+      {
+        threshold: 0.08,
+        rootMargin: '0px 0px -40px 0px',
+      }
+    );
+
+    const elements = document.querySelectorAll('.reveal-on-scroll');
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [isTackPage]);
+
   // Smooth scroll to hero form helper
   const scrollToForm = () => {
     const formElement = document.getElementById('calculator-form-container');

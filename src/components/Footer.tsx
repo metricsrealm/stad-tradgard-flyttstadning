@@ -26,7 +26,7 @@ export default function Footer({ onPrivacyClick }: FooterProps) {
               <span className="text-gray-500 font-medium">Telefon:</span>
               <a
                 href="tel:0101753040"
-                className="text-white font-bold hover:text-brand underline decoration-brand/50 decoration-1 hover:decoration-brand duration-150"
+                className="text-white font-bold hover:text-brand underline decoration-brand/50 decoration-1 hover:decoration-brand transition-colors duration-300 ease-out"
               >
                 010-175 30 40
               </a>
@@ -35,7 +35,7 @@ export default function Footer({ onPrivacyClick }: FooterProps) {
               <span className="text-gray-500 font-medium">E-post:</span>
               <a
                 href="mailto:info@stadochtradgard.se"
-                className="text-gray-200 hover:text-brand underline decoration-gray-700 decoration-1 hover:decoration-brand duration-150"
+                className="text-gray-200 hover:text-brand underline decoration-gray-700 decoration-1 hover:decoration-brand transition-colors duration-300 ease-out"
               >
                 info@stadochtradgard.se
               </a>

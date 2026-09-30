@@ -19,10 +19,10 @@ export default function Header() {
         <div className="flex items-center gap-3">
           <a
             href="tel:0101753040"
-            className="inline-flex items-center justify-center bg-brand hover:bg-brand-hover text-white text-sm md:text-base font-semibold px-4 py-2.5 md:py-3 rounded-full shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-150 group active:translate-y-0 min-h-[48px]"
+            className="inline-flex items-center justify-center bg-brand hover:bg-brand-hover text-white text-sm md:text-base font-semibold px-4 py-2.5 md:py-3 rounded-full shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-98 transition-all duration-300 ease-out group min-h-[48px]"
             id="header-phone-btn"
           >
-            <Phone className="w-4 h-4 mr-2 group-hover:animate-bounce" />
+            <Phone className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300 ease-out" />
             <span>010-175 30 40</span>
           </a>
         </div>

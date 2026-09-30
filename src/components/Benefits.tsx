@@ -34,7 +34,7 @@ export default function Benefits() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-[560px] mx-auto mb-12">
-          <h2 className="text-[30px] font-bold tracking-tight text-[#1C2833] font-display">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1C2833] font-display">
             Våra trygga fördelar vid flyttstädning
           </h2>
           <p className="mt-4 text-[16px] text-[#5D6D7E] text-center">
@@ -51,8 +51,8 @@ export default function Benefits() {
               <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center mb-6 transition-transform">
                 {b.icon}
               </div>
-              <h3 className="text-lg md:text-xl font-bold text-[#1C2833] mb-3 font-display">{b.title}</h3>
-              <p className="text-sm md:text-base text-gray-600 leading-relaxed">{b.desc}</p>
+              <h3 className="text-sm sm:text-base font-bold text-[#1C2833] mb-2 font-display">{b.title}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{b.desc}</p>
             </div>
           ))}
         </div>

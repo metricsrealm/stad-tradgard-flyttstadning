@@ -30,8 +30,8 @@ export default function BeforeAfter() {
   return (
     <section className="py-20 bg-emerald-50/15 border-b border-gray-200" id="before-after-section">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-[560px] mx-auto mb-10">
-          <h2 className="text-[30px] font-bold tracking-tight text-[#1C2833] mt-4 mb-2 font-display">
+        <div className="text-center max-w-[560px] mx-auto mb-10 reveal-on-scroll">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1C2833] mb-2 font-display">
             Resultat som talar för sig självt
           </h2>
           <p className="text-[16px] text-[#5D6D7E] text-center">
@@ -40,16 +40,16 @@ export default function BeforeAfter() {
         </div>
 
         {/* Categories Tab selector (Fix 7) */}
-        <div className="flex justify-center flex-wrap gap-2 mb-8" id="before-after-tabs">
+        <div className="flex justify-center flex-wrap gap-2 mb-8 reveal-on-scroll delay-75" id="before-after-tabs">
           {(Object.keys(slides) as Array<keyof typeof slides>).map((key) => {
             const isActive = activeTab === key;
             return (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`filter-tab font-medium transition-all duration-150 cursor-pointer border-[1.5px] rounded-[20px] py-[6px] px-[18px] text-[13px] ${
+                className={`filter-tab font-medium transition-all duration-300 ease-out cursor-pointer border-[1.5px] rounded-[20px] py-[6px] px-[18px] text-[13px] hover:scale-102 active:scale-98 ${
                   isActive
-                    ? 'background-[#EC4C44] bg-[#EC4C44] border-[#EC4C44] text-white'
+                    ? 'background-[#EC4C44] bg-[#EC4C44] border-[#EC4C44] text-white shadow-xs'
                     : 'bg-transparent border-[#D5D8DC] text-[#5D6D7E] hover:bg-gray-50'
                 }`}
               >
@@ -60,7 +60,7 @@ export default function BeforeAfter() {
         </div>
 
         {/* Comparative Cards Container (Fix 6) */}
-        <div className="max-w-4xl mx-auto bg-white p-4 md:p-6 rounded-[12px] border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
+        <div className="max-w-4xl mx-auto bg-white p-4 md:p-6 rounded-[12px] border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] reveal-on-scroll delay-150">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
             
             {/* Before Column */}
@@ -68,7 +68,7 @@ export default function BeforeAfter() {
               <img
                 src={activeSlide.beforeUrl}
                 alt={`${activeSlide.title} Innan`}
-                className="w-full h-full object-cover transition-transform duration-300 hover:scale-103"
+                className="w-full h-full object-cover transition-transform duration-700 ease-out hover:scale-105"
                 loading="lazy"
               />
               <div className="absolute top-3 left-3 bg-gray-900/80 backdrop-blur-xs text-white text-xs font-bold px-3 py-1.5 rounded-md border border-gray-800">
@@ -81,7 +81,7 @@ export default function BeforeAfter() {
               <img
                 src={activeSlide.afterUrl}
                 alt={`${activeSlide.title} Efter`}
-                className="w-full h-full object-cover transition-transform duration-300 hover:scale-103"
+                className="w-full h-full object-cover transition-transform duration-700 ease-out hover:scale-105"
                 loading="lazy"
               />
               <div className="absolute top-3 right-3 bg-brand text-white text-xs font-bold px-3 py-1.5 rounded-md border border-green-600/50">

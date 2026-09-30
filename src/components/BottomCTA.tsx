@@ -19,13 +19,13 @@ export default function BottomCTA({ onScrollToForm }: BottomCTAProps) {
       <div className="absolute inset-0 z-10 bg-gray-950/42"></div>
 
       {/* Content wrapper */}
-      <div className="max-w-4xl mx-auto text-center relative z-20">
+      <div className="max-w-4xl mx-auto text-center relative z-20 reveal-on-scroll">
 
-        <h2 className="text-3xl md:text-5xl font-black tracking-tight font-display mb-4">
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-display mb-3 text-white">
           Redo för en smidig & godkänd flyttstädning?
         </h2>
         
-        <p className="text-base md:text-xl text-gray-200 font-medium max-w-2xl mx-auto mb-8">
+        <p className="text-sm sm:text-base text-gray-200 font-medium max-w-2xl mx-auto mb-8">
           Få ditt fasta pris på 60 sekunder &mdash; med 100% besiktningsgaranti.
         </p>
 
@@ -33,15 +33,15 @@ export default function BottomCTA({ onScrollToForm }: BottomCTAProps) {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
           <button
             onClick={onScrollToForm}
-            className="w-full sm:w-auto bg-brand hover:bg-brand-hover text-white text-base md:text-lg font-bold px-8 py-3.5 rounded-full shadow-lg hover:shadow-2xl transition-all duration-150 cursor-pointer flex items-center justify-center gap-2 group min-h-[48px]"
+            className="w-full sm:w-auto bg-brand hover:bg-brand-hover text-white text-base md:text-lg font-bold px-8 py-3.5 rounded-full shadow-lg hover:shadow-2xl hover:-translate-y-0.5 active:scale-98 transition-all duration-300 ease-out cursor-pointer flex items-center justify-center gap-2 group min-h-[48px]"
           >
             <span>Beräkna mitt fasta pris</span>
-            <ArrowUpCircle className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
+            <ArrowUpCircle className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform duration-300 ease-out" />
           </button>
 
           <a
             href="tel:0101753040"
-            className="w-full sm:w-auto bg-transparent border border-white/60 hover:bg-white/10 text-white text-base md:text-lg font-bold px-7 py-3 rounded-full shadow-xs hover:shadow-md transition-all duration-150 flex items-center justify-center gap-2.5 min-h-[48px]"
+            className="w-full sm:w-auto bg-transparent border border-white/60 hover:bg-white/10 text-white text-base md:text-lg font-bold px-7 py-3 rounded-full shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-98 transition-all duration-300 ease-out flex items-center justify-center gap-2.5 min-h-[48px]"
           >
             <Phone className="w-5 h-5 text-white" />
             <span>Ring: 010-175 30 40</span>

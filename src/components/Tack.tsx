@@ -84,13 +84,18 @@ export default function Tack({ serviceType, cityName, onGoBack }: TackProps) {
         </div>
 
         {/* Google review micro badge */}
-        <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 mb-8 border-t border-gray-100 pt-6">
+        <a
+          href="https://maps.app.goo.gl/MJpJGKZWUqxDnRWL7"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-1.5 text-xs text-gray-500 mb-8 border-t border-gray-100 pt-6 hover:text-brand transition-colors mx-auto cursor-pointer"
+        >
           <span className="font-semibold text-gray-700">Vill du se vad andra tycker?</span>
           <div className="flex items-center text-amber-500">
             <Star className="w-3.5 h-3.5 fill-amber-500" />
-            <span className="ml-1 text-gray-600 font-bold">4.8/5 på Google</span>
+            <span className="ml-1 text-gray-600 font-bold hover:underline">4.8/5 på Google</span>
           </div>
-        </div>
+        </a>
 
         {/* Back Button */}
         <button

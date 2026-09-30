@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Loader2, Mail, User, Phone, CheckCircle2, MapPin, Info } from 'lucide-react';
+import { Check, Loader2, Mail, User, Phone, CheckCircle2, MapPin, Info, Truck } from 'lucide-react';
 import { DatePicker } from './DatePicker';
 import { CityCombobox } from './CityCombobox';
 import type { FormValues } from '../types';
@@ -628,7 +628,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
       {/* STEP 1: BOSTAD */}
       {step === 1 && (
-        <form onSubmit={handleStep1Submit} noValidate className="space-y-4" id="stepperForm">
+        <form onSubmit={handleStep1Submit} noValidate className="space-y-4 animate-step-in" id="stepperForm">
           <div className="text-center space-y-1 mb-2">
             <h2 className="text-lg md:text-xl font-extrabold text-gray-900 tracking-tight font-display">
               Räkna ut pris för flyttstädning
@@ -640,7 +640,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
           {/* Service badge (Pre-selected) */}
           <div>
-            <div className="bg-red-50/60 border-2 border-[#ec4c44] rounded-xl p-3 flex items-center gap-3 w-full">
+            <div className="bg-red-50/60 border border-[#ec4c44] rounded-xl p-3 flex items-center gap-3 w-full">
               <span className="text-lg">🚚</span>
               <div className="text-left">
                 <strong className="text-gray-900 text-xs font-bold block">Flyttstädning</strong>
@@ -652,136 +652,160 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
             </div>
           </div>
 
-          {/* Square Meters (Bostadsyta kvm) */}
-          <div className="space-y-1.5">
-            <label htmlFor="squareMeter">
-              Bostadsyta (kvm) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              id="squareMeter"
-              name="squareMeter"
-              placeholder="T.ex. 70"
-              value={squareMeter}
-              onChange={(e) => {
-                setSquareMeter(e.target.value);
-                if (errors.squareMeter) setErrors({ ...errors, squareMeter: '' });
-              }}
-              min="10"
-              max="500"
-              inputMode="numeric"
-              className={errors.squareMeter ? 'field-error' : ''}
-            />
-            {errors.squareMeter && (
-              <span className="error-text">⚠ {errors.squareMeter}</span>
-            )}
-          </div>
-
-          {/* Location (Stad) Selection field with Searchable City Combobox */}
-          <div className="space-y-1.5">
-            <label htmlFor="city">
-              Stad <span className="text-red-500">*</span>
-            </label>
-            <CityCombobox
-              id="city"
-              value={city}
-              onChange={(val) => {
-                setCity(val);
-                if (errors.city) setErrors({ ...errors, city: '' });
-              }}
-              error={errors.city}
-            />
-            {errors.city && (
-              <span className="error-text">⚠ {errors.city}</span>
-            )}
-          </div>
-
-          {/* Additional Services UI (Eventuella tillval) - Clean & Professional Layout */}
-          <div className="space-y-2 pt-2 border-t border-gray-150">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-gray-700">
-                Eventuella tillval
+          {/* Inputs Row: Bostadsyta & Stad side-by-side */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Square Meters (Bostadsyta kvm) */}
+            <div className="space-y-1">
+              <label htmlFor="squareMeter" className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-0.5 !mb-1">
+                <span>Bostadsyta (kvm)</span>
+                <span className="text-[#ec4c44]">*</span>
               </label>
-              {(sprojsFonster || inglasadAltan || oppningsbaraFonster) && (
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                  Extra avgift tillkommer
+              <div className="relative flex items-center">
+                <input
+                  type="number"
+                  id="squareMeter"
+                  name="squareMeter"
+                  placeholder="T.ex. 70"
+                  value={squareMeter}
+                  onChange={(e) => {
+                    setSquareMeter(e.target.value);
+                    if (errors.squareMeter) setErrors({ ...errors, squareMeter: '' });
+                  }}
+                  min="10"
+                  max="500"
+                  inputMode="numeric"
+                  style={{ paddingLeft: '14px', paddingRight: '48px' }}
+                  className={`step1-input w-full bg-white border ${
+                    errors.squareMeter ? '!border-red-500 ring-1 ring-red-500' : 'border-[#D5D8DC] hover:border-gray-400'
+                  } focus:!border-brand focus:ring-2 focus:ring-brand/20 !rounded-xl text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all`}
+                />
+                <span className="absolute right-3.5 text-xs text-gray-400 font-medium pointer-events-none select-none">
+                  kvm
                 </span>
+              </div>
+              {errors.squareMeter && (
+                <span className="error-text">⚠ {errors.squareMeter}</span>
               )}
             </div>
-            <div className="space-y-2">
+
+            {/* Location (Stad) Selection field with Searchable City Combobox */}
+            <div className="space-y-1">
+              <label htmlFor="city" className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-0.5 !mb-1">
+                <span>Stad</span>
+                <span className="text-[#ec4c44]">*</span>
+              </label>
+              <CityCombobox
+                id="city"
+                value={city}
+                onChange={(val) => {
+                  setCity(val);
+                  if (errors.city) setErrors({ ...errors, city: '' });
+                }}
+                error={errors.city}
+              />
+              {errors.city && (
+                <span className="error-text">⚠ {errors.city}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Additional Services UI (Eventuella tillval) */}
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs sm:text-sm font-bold text-gray-800">
+                Eventuella tillval
+              </span>
+              <span className="text-xs text-gray-400 font-normal">
+                Tillägg tillkommer
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-2 sm:gap-2.5">
               {/* Option 1: Spröjsade fönster */}
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setSprojsFonster(!sprojsFonster)}
-                className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    setSprojsFonster(!sprojsFonster);
+                  }
+                }}
+                className={`inline-flex items-center gap-2.5 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all duration-300 ease-out cursor-pointer select-none ${
                   sprojsFonster
-                    ? 'border-brand bg-red-50/40 shadow-2xs ring-1 ring-brand'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                    ? 'border-[#ec4c44] bg-red-50/40 text-gray-900'
+                    : 'border-[#D5D8DC] bg-white text-gray-800 hover:border-gray-400'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <input
-                    type="checkbox"
-                    checked={sprojsFonster}
-                    onChange={() => {}} // Handled by div container click
-                    className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm font-semibold text-gray-900">
-                    Spröjsade fönster
-                  </span>
+                <div
+                  className={`w-4 h-4 rounded flex items-center justify-center border transition-all duration-300 ease-out shrink-0 ${
+                    sprojsFonster
+                      ? 'bg-[#ec4c44] border-[#ec4c44] text-white'
+                      : 'border-gray-300 bg-white'
+                  }`}
+                >
+                  {sprojsFonster && <Check className="w-3 h-3 text-white stroke-[3]" />}
                 </div>
-                <span className="text-[10px] sm:text-[11px] font-medium text-gray-500 bg-gray-50 border border-gray-200/80 px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap">
-                  Tillägg tillkommer
-                </span>
+                <span>Spröjsade fönster</span>
               </div>
 
               {/* Option 2: Inglasad altan / balkong */}
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setInglasadAltan(!inglasadAltan)}
-                className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    setInglasadAltan(!inglasadAltan);
+                  }
+                }}
+                className={`inline-flex items-center gap-2.5 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all duration-300 ease-out cursor-pointer select-none ${
                   inglasadAltan
-                    ? 'border-brand bg-red-50/40 shadow-2xs ring-1 ring-brand'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                    ? 'border-[#ec4c44] bg-red-50/40 text-gray-900'
+                    : 'border-[#D5D8DC] bg-white text-gray-800 hover:border-gray-400'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <input
-                    type="checkbox"
-                    checked={inglasadAltan}
-                    onChange={() => {}} // Handled by div container click
-                    className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm font-semibold text-gray-900">
-                    Inglasad altan / balkong
-                  </span>
+                <div
+                  className={`w-4 h-4 rounded flex items-center justify-center border transition-all duration-300 ease-out shrink-0 ${
+                    inglasadAltan
+                      ? 'bg-[#ec4c44] border-[#ec4c44] text-white'
+                      : 'border-gray-300 bg-white'
+                  }`}
+                >
+                  {inglasadAltan && <Check className="w-3 h-3 text-white stroke-[3]" />}
                 </div>
-                <span className="text-[10px] sm:text-[11px] font-medium text-gray-500 bg-gray-50 border border-gray-200/80 px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap">
-                  Tillägg tillkommer
-                </span>
+                <span>Inglasad altan / balkong</span>
               </div>
 
               {/* Option 3: Öppningsbara fönster/4-sidor */}
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setOppningsbaraFonster(!oppningsbaraFonster)}
-                className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    setOppningsbaraFonster(!oppningsbaraFonster);
+                  }
+                }}
+                className={`inline-flex items-center gap-2.5 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm font-medium transition-all duration-300 ease-out cursor-pointer select-none ${
                   oppningsbaraFonster
-                    ? 'border-brand bg-red-50/40 shadow-2xs ring-1 ring-brand'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                    ? 'border-[#ec4c44] bg-red-50/40 text-gray-900'
+                    : 'border-[#D5D8DC] bg-white text-gray-800 hover:border-gray-400'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <input
-                    type="checkbox"
-                    checked={oppningsbaraFonster}
-                    onChange={() => {}} // Handled by div container click
-                    className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm font-semibold text-gray-900">
-                    Öppningsbara fönster/4-sidor
-                  </span>
+                <div
+                  className={`w-4 h-4 rounded flex items-center justify-center border transition-all duration-300 ease-out shrink-0 ${
+                    oppningsbaraFonster
+                      ? 'bg-[#ec4c44] border-[#ec4c44] text-white'
+                      : 'border-gray-300 bg-white'
+                  }`}
+                >
+                  {oppningsbaraFonster && <Check className="w-3 h-3 text-white stroke-[3]" />}
                 </div>
-                <span className="text-[10px] sm:text-[11px] font-medium text-gray-500 bg-gray-50 border border-gray-200/80 px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap">
-                  Tillägg tillkommer
-                </span>
+                <span>Öppningsbara fönster/4-sidor</span>
               </div>
             </div>
           </div>
@@ -811,7 +835,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
       {/* STEP 2: KONTAKTUPPGIFTER */}
       {step === 2 && (
-        <form onSubmit={handleStep2Submit} noValidate className="space-y-4" id="stepperForm">
+        <form onSubmit={handleStep2Submit} noValidate className="space-y-4 animate-step-in" id="stepperForm">
           <div className="text-center space-y-1 mb-2">
             <h2 className="text-lg md:text-xl font-extrabold text-gray-900 tracking-tight font-display">
               Var ska vi skicka offerten?
@@ -937,7 +961,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
       {/* STEP 3: FLYTTDATUM & MEDDELANDE */}
       {step === 3 && (
-        <form onSubmit={handleStep3Submit} noValidate className="space-y-4" id="stepperForm">
+        <form onSubmit={handleStep3Submit} noValidate className="space-y-4 animate-step-in" id="stepperForm">
           <div className="text-center space-y-1 mb-2">
             <h2 className="text-lg md:text-xl font-extrabold text-gray-900 tracking-tight font-display">
               När vill du ha flyttstädningen?
@@ -1007,7 +1031,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
       {/* STEP 4: TRUST ANIMATION TIMEOUT */}
       {step === 4 && (
-        <div className="py-12 flex flex-col items-center justify-center text-center space-y-6" id="form-animated-loader">
+        <div className="py-12 flex flex-col items-center justify-center text-center space-y-6 animate-step-in" id="form-animated-loader">
           <Loader2 className="w-12 h-12 text-brand animate-spin" />
           <div className="space-y-2">
             <h3 className="text-xl font-extrabold text-gray-900 font-display animate-pulse">
@@ -1028,7 +1052,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
       {/* STEP 5: STREAMLINED PRICE SUMMARY SCREEN */}
       {step === 5 && (
-        <div className="space-y-6" id="pricing-estimate">
+        <div className="space-y-6 animate-step-in" id="pricing-estimate">
           <div className="text-center space-y-1">
             <span className="inline-block bg-emerald-100 text-emerald-800 text-[11px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider mb-1">
               Inga dolda avgifter
@@ -1095,7 +1119,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
           <button
             onClick={handleFinalSubmit}
             disabled={isSubmitting}
-            className="w-full bg-brand hover:bg-brand-hover text-white h-12 rounded-xl text-base font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full bg-brand hover:bg-brand-hover text-white h-12 rounded-xl text-base font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-300 ease-out cursor-pointer flex items-center justify-center gap-2"
             id="contact_button"
           >
             {isSubmitting ? (
@@ -1133,7 +1157,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
       {/* STEP 6: SUCCESS STATE */}
       {step === 6 && (
-        <div className="py-8 px-4 text-center space-y-4" id="greetings">
+        <div className="py-8 px-4 text-center space-y-4 animate-step-in" id="greetings">
           <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
             ✓
           </div>

@@ -58,8 +58,8 @@ export default function Testimonials() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-[560px] mx-auto mb-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#1C2833] tracking-tight font-display mb-2">
+        <div className="text-center max-w-[560px] mx-auto mb-6 reveal-on-scroll">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1C2833] tracking-tight font-display mb-2">
             Vad våra kunder säger
           </h2>
           <p className="text-xs sm:text-sm text-[#5D6D7E] text-center leading-relaxed">
@@ -68,7 +68,7 @@ export default function Testimonials() {
         </div>
 
         {/* Google Rating Summary Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 max-w-md mx-auto" id="rating-summary-bar">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 max-w-md mx-auto reveal-on-scroll delay-100" id="rating-summary-bar">
           <div className="text-[48px] font-extrabold text-[#1C2833] leading-none font-display">
             4.8
           </div>
@@ -81,10 +81,15 @@ export default function Testimonials() {
             <div className="text-xs text-[#5D6D7E] font-medium">
               Baserat på 29 Google-omdömen
             </div>
-            <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-[#7F8C8D]">
+            <a
+              href="https://maps.app.goo.gl/MJpJGKZWUqxDnRWL7"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 mt-0.5 text-[11px] text-[#7F8C8D] hover:text-[#4285F4] transition-colors"
+            >
               {googleLogo}
-              <span>Verifierade Google-omdömen</span>
-            </div>
+              <span className="hover:underline">Verifierade Google-omdömen</span>
+            </a>
           </div>
         </div>
 
@@ -93,7 +98,9 @@ export default function Testimonials() {
           {reviews.map((r, idx) => (
             <div
               key={idx}
-              className="bg-white border border-[#E5E7EB] rounded-[12px] p-[16px] shadow-none flex flex-col justify-between"
+              className={`bg-white border border-[#E5E7EB] rounded-[12px] p-[16px] card-hover-lift flex flex-col justify-between reveal-on-scroll ${
+                idx === 1 ? 'delay-100' : idx === 2 ? 'delay-200' : idx === 3 ? 'delay-300' : ''
+              }`}
               id={`review-card-${idx}`}
             >
               <div>
@@ -132,10 +139,15 @@ export default function Testimonials() {
                 <span className="bg-[#FFF5F4] border border-[#FECACA] text-[#EC4C44] text-[10px] font-semibold py-0.5 px-[8px] rounded-[10px]">
                   {r.service}
                 </span>
-                <div className="flex items-center gap-1 text-[11px] text-[#7F8C8D]">
+                <a
+                  href="https://maps.app.goo.gl/MJpJGKZWUqxDnRWL7"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-[11px] text-[#7F8C8D] hover:text-[#4285F4] transition-colors"
+                >
                   {googleLogo}
                   <span>Omdöme via Google</span>
-                </div>
+                </a>
               </div>
             </div>
           ))}
@@ -144,10 +156,10 @@ export default function Testimonials() {
         {/* View on Google Maps Button */}
         <div className="text-center mt-[20px]">
           <a
-            href="https://www.google.com/maps/place/data=!4m7!3m6!1s0x46508e0e9140b95f:0x588021ed846c850"
+            href="https://maps.app.goo.gl/MJpJGKZWUqxDnRWL7"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-white border-[1.5px] border-[#E5E7EB] rounded-[8px] px-[22px] py-[10px] text-[13px] font-semibold text-[#374151] cursor-pointer hover:border-[#4285F4] transition-colors duration-150"
+            className="inline-flex items-center gap-2 bg-white border-[1.5px] border-[#E5E7EB] rounded-[8px] px-[22px] py-[10px] text-[13px] font-semibold text-[#374151] cursor-pointer hover:border-[#4285F4] hover:shadow-xs hover:-translate-y-0.5 transition-all duration-300 ease-out"
             id="view-google-reviews-btn"
           >
             {googleLogo}

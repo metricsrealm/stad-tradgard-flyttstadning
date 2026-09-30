@@ -40,10 +40,24 @@ html {
 /* Custom polished card micro-shadows */
 .sleek-card {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sleek-card-hover {
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .sleek-card-hover:hover {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  box-shadow: 0 12px 24px -4px rgb(0 0 0 / 0.07), 0 4px 8px -2px rgb(0 0 0 / 0.04);
   transform: translateY(-2px);
+}
+
+/* Chrome, Safari, Edge, Opera: hide number spinner */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Redesigned stepper form consistency styles */
@@ -55,9 +69,14 @@ html {
   height: 44px;
   font-size: 14px;
   width: 100%;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1), transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   color: #1C2833;
   background: #ffffff;
+}
+
+#stepperForm input.step1-input {
+  border-radius: 12px;
+  height: 46px;
 }
 
 #stepperForm textarea {
@@ -67,7 +86,7 @@ html {
   font-size: 14px;
   line-height: 1.5;
   width: 100%;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1), transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   color: #1C2833;
   background: #ffffff;
 }
@@ -81,6 +100,11 @@ html {
   padding: 0 !important;
   cursor: pointer;
   accent-color: #EC4C44;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#stepperForm input[type="checkbox"]:hover {
+  transform: scale(1.1);
 }
 
 #stepperForm input::placeholder,
@@ -94,8 +118,9 @@ html {
 #stepperForm select:focus,
 #stepperForm textarea:focus {
   border-color: #EC4C44;
-  box-shadow: 0 0 0 3px rgba(236,76,68,0.12);
+  box-shadow: 0 0 0 4px rgba(236, 76, 68, 0.16), 0 2px 8px rgba(236, 76, 68, 0.08);
   outline: none;
+  transform: translateY(-1px);
 }
 
 #stepperForm label {
@@ -121,7 +146,7 @@ html {
   font-weight: 700;
   width: 100%;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background-color 0.35s cubic-bezier(0.22, 1, 0.36, 1), transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -129,15 +154,21 @@ html {
   white-space: nowrap;
 }
 
+#stepperForm .btn-primary:hover {
+  background: #D44038;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(236, 76, 68, 0.28);
+}
+
+#stepperForm .btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
 @media (min-width: 640px) {
   #stepperForm .btn-primary {
     font-size: 14px;
     padding: 0 18px;
   }
-}
-
-#stepperForm .btn-primary:hover {
-  background: #D44038;
 }
 
 #stepperForm .btn-secondary {
@@ -151,7 +182,7 @@ html {
   font-weight: 600;
   width: 100%;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background-color 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1), transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,6 +200,7 @@ html {
 #stepperForm .btn-secondary:hover {
   background: #F9FAFB;
   border-color: #9CA3AF;
+  transform: translateY(-1px);
 }
 
 /* Calendar styling overrides for DayPicker */
@@ -253,7 +285,7 @@ html {
   font-weight: 600;
   color: #374151;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -284,5 +316,91 @@ html {
   margin-top: 4px;
   display: block;
 }
+
+/* Step and form entrance animations */
+@keyframes formStepEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-step-in {
+  animation: formStepEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+/* Hero Section Staggered Entrance Animations - Smoother, gentler, and fluid */
+@keyframes heroFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-badge {
+  animation: heroFadeUp 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+  will-change: opacity, transform;
+}
+
+.animate-hero-heading {
+  animation: heroFadeUp 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+  will-change: opacity, transform;
+}
+
+.animate-hero-checks {
+  animation: heroFadeUp 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.34s both;
+  will-change: opacity, transform;
+}
+
+.animate-hero-cta {
+  animation: heroFadeUp 1.25s cubic-bezier(0.22, 1, 0.36, 1) 0.46s both;
+  will-change: opacity, transform;
+}
+
+.animate-hero-form {
+  animation: heroFadeUp 1.25s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
+  will-change: opacity, transform;
+}
+
+/* Scroll Reveal Animation System */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 1.0s cubic-bezier(0.22, 1, 0.36, 1), transform 1.0s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger delay classes */
+.delay-75 { transition-delay: 90ms; }
+.delay-100 { transition-delay: 150ms; }
+.delay-150 { transition-delay: 220ms; }
+.delay-200 { transition-delay: 300ms; }
+.delay-250 { transition-delay: 380ms; }
+.delay-300 { transition-delay: 450ms; }
+.delay-400 { transition-delay: 550ms; }
+
+/* Micro-interaction card hover lifts */
+.card-hover-lift {
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s ease;
+}
+.card-hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -4px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
+}
+
 
 
