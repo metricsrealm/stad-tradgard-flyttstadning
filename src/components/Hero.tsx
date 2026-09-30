@@ -134,7 +134,7 @@ export default function Hero({
                 id="hero-secondary-cta"
               >
                 <Phone className="w-5 h-5 text-white flex-shrink-0" />
-                <span className="font-bold text-white tracking-tight">eller ring direkt: 010-175 30 40</span>
+                <span className="font-bold text-white tracking-tight">Eller ring direkt: 010-175 30 40</span>
               </a>
             </div>
           </div>

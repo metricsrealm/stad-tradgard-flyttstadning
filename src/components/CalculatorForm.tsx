@@ -174,6 +174,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
   // Add-ons
   const [sprojsFonster, setSprojsFonster] = useState<boolean>(false);
   const [inglasadAltan, setInglasadAltan] = useState<boolean>(false);
+  const [oppningsbaraFonster, setOppningsbaraFonster] = useState<boolean>(false);
 
   // Customer contact info & preferences
   const [name, setName] = useState<string>('');
@@ -257,28 +258,50 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
 
   // Dynamic add-on notice displayed with the final price depending on customer's selection
   const getAddonNotice = () => {
-    if (sprojsFonster && inglasadAltan) {
+    const selected: { name: string; badgeName: string }[] = [];
+    if (sprojsFonster) selected.push({ name: 'spröjsade fönster', badgeName: 'spröjsade fönster' });
+    if (inglasadAltan) selected.push({ name: 'inglasad altan/balkong', badgeName: 'balkong' });
+    if (oppningsbaraFonster) selected.push({ name: 'öppningsbara fönster/4-sidor', badgeName: 'öppningsbara fönster' });
+
+    if (selected.length === 0) return null;
+
+    if (selected.length === 1) {
+      if (sprojsFonster) {
+        return {
+          badge: "Tillägg tillkommer för spröjsade fönster",
+          title: "Extra avgift tillkommer för spröjsade fönster",
+          description: "Observera: En extra avgift tillkommer för spröjsade fönster utöver det ordinarie priset."
+        };
+      }
+      if (inglasadAltan) {
+        return {
+          badge: "Tillägg tillkommer för balkong",
+          title: "Extra avgift tillkommer för balkong",
+          description: "Observera: En extra avgift tillkommer för inglasad altan/balkong utöver det ordinarie priset."
+        };
+      }
+      if (oppningsbaraFonster) {
+        return {
+          badge: "Tillägg tillkommer för öppningsbara fönster/4-sidor",
+          title: "Extra avgift tillkommer för öppningsbara fönster/4-sidor",
+          description: "Observera: En extra avgift tillkommer för öppningsbara fönster/4-sidor utöver det ordinarie priset."
+        };
+      }
+    }
+
+    if (selected.length === 2) {
       return {
-        badge: "Tillägg tillkommer för både fönster och balkong",
-        title: "Extra avgift tillkommer för fönster och balkong",
-        description: "Observera: En extra avgift tillkommer för både spröjsade fönster och inglasad altan/balkong utöver det ordinarie priset."
+        badge: `Tillägg tillkommer för ${selected[0].badgeName} & ${selected[1].badgeName}`,
+        title: `Extra avgift tillkommer för tillval`,
+        description: `Observera: En extra avgift tillkommer för både ${selected[0].name} och ${selected[1].name} utöver det ordinarie priset.`
       };
     }
-    if (sprojsFonster) {
-      return {
-        badge: "Tillägg tillkommer för fönster",
-        title: "Extra avgift tillkommer för fönster",
-        description: "Observera: En extra avgift tillkommer för spröjsade fönster utöver det ordinarie priset."
-      };
-    }
-    if (inglasadAltan) {
-      return {
-        badge: "Tillägg tillkommer för balkong",
-        title: "Extra avgift tillkommer för balkong",
-        description: "Observera: En extra avgift tillkommer för inglasad altan/balkong utöver det ordinarie priset."
-      };
-    }
-    return null;
+
+    return {
+      badge: "Tillägg tillkommer för valda tillval",
+      title: "Extra avgift tillkommer för tillval",
+      description: "Observera: En extra avgift tillkommer för spröjsade fönster, inglasad altan/balkong och öppningsbara fönster/4-sidor utöver det ordinarie priset."
+    };
   };
 
   const addonNotice = getAddonNotice();
@@ -355,8 +378,9 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
     // Fire lead generation payload immediately in Step 3 so details are saved
     try {
       const addons: string[] = [];
-      if (sprojsFonster) addons.push("Spröjsade fönster (extra tillägg tillkommer)");
-      if (inglasadAltan) addons.push("Inglasad altan/balkong (extra tillägg tillkommer)");
+      if (sprojsFonster) addons.push("Spröjsade fönster");
+      if (inglasadAltan) addons.push("Inglasad altan/balkong");
+      if (oppningsbaraFonster) addons.push("Öppningsbara fönster/4-sidor");
       const fullMessage = addons.length > 0 
         ? `Tillval: ${addons.join(', ')}.${message ? ' ' + message : ''}`
         : message;
@@ -449,8 +473,9 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
     setIsSubmitting(true);
     try {
       const addons: string[] = [];
-      if (sprojsFonster) addons.push("Spröjsade fönster (extra tillägg tillkommer)");
-      if (inglasadAltan) addons.push("Inglasad altan/balkong (extra tillägg tillkommer)");
+      if (sprojsFonster) addons.push("Spröjsade fönster");
+      if (inglasadAltan) addons.push("Inglasad altan/balkong");
+      if (oppningsbaraFonster) addons.push("Öppningsbara fönster/4-sidor");
       const fullMessage = addons.length > 0 
         ? `Tillval: ${addons.join(', ')}.${message ? ' ' + message : ''}`
         : message;
@@ -671,67 +696,92 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
             )}
           </div>
 
-          {/* Additional Services UI (Eventuella tillval) - Compact Selectable Cards */}
+          {/* Additional Services UI (Eventuella tillval) - Clean & Professional Layout */}
           <div className="space-y-2 pt-2 border-t border-gray-150">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-gray-700">
                 Eventuella tillval
               </label>
-              {(sprojsFonster || inglasadAltan) && (
+              {(sprojsFonster || inglasadAltan || oppningsbaraFonster) && (
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
                   Extra avgift tillkommer
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {/* Card 1: Spröjsade fönster */}
+            <div className="space-y-2">
+              {/* Option 1: Spröjsade fönster */}
               <div
                 onClick={() => setSprojsFonster(!sprojsFonster)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
                   sprojsFonster
                     ? 'border-brand bg-red-50/40 shadow-2xs ring-1 ring-brand'
                     : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={sprojsFonster}
-                  onChange={() => {}} // Handled by div container click
-                  className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
-                />
-                <div className="flex flex-col min-w-0 justify-center">
-                  <span className="text-xs font-semibold text-gray-900 leading-tight">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <input
+                    type="checkbox"
+                    checked={sprojsFonster}
+                    onChange={() => {}} // Handled by div container click
+                    className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
+                  />
+                  <span className="text-xs sm:text-sm font-semibold text-gray-900">
                     Spröjsade fönster
                   </span>
-                  <span className="text-[11px] text-gray-500 mt-0.5">
-                    Tillägg tillkommer
-                  </span>
                 </div>
+                <span className="text-[10px] sm:text-[11px] font-medium text-gray-500 bg-gray-50 border border-gray-200/80 px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap">
+                  Tillägg tillkommer
+                </span>
               </div>
 
-              {/* Card 2: Inglasad altan / balkong */}
+              {/* Option 2: Inglasad altan / balkong */}
               <div
                 onClick={() => setInglasadAltan(!inglasadAltan)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
                   inglasadAltan
                     ? 'border-brand bg-red-50/40 shadow-2xs ring-1 ring-brand'
                     : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={inglasadAltan}
-                  onChange={() => {}} // Handled by div container click
-                  className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
-                />
-                <div className="flex flex-col min-w-0 justify-center">
-                  <span className="text-xs font-semibold text-gray-900 leading-tight">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <input
+                    type="checkbox"
+                    checked={inglasadAltan}
+                    onChange={() => {}} // Handled by div container click
+                    className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
+                  />
+                  <span className="text-xs sm:text-sm font-semibold text-gray-900">
                     Inglasad altan / balkong
                   </span>
-                  <span className="text-[11px] text-gray-500 mt-0.5">
-                    Tillägg tillkommer
+                </div>
+                <span className="text-[10px] sm:text-[11px] font-medium text-gray-500 bg-gray-50 border border-gray-200/80 px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap">
+                  Tillägg tillkommer
+                </span>
+              </div>
+
+              {/* Option 3: Öppningsbara fönster/4-sidor */}
+              <div
+                onClick={() => setOppningsbaraFonster(!oppningsbaraFonster)}
+                className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                  oppningsbaraFonster
+                    ? 'border-brand bg-red-50/40 shadow-2xs ring-1 ring-brand'
+                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <input
+                    type="checkbox"
+                    checked={oppningsbaraFonster}
+                    onChange={() => {}} // Handled by div container click
+                    className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0 cursor-pointer"
+                  />
+                  <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                    Öppningsbara fönster/4-sidor
                   </span>
                 </div>
+                <span className="text-[10px] sm:text-[11px] font-medium text-gray-500 bg-gray-50 border border-gray-200/80 px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap">
+                  Tillägg tillkommer
+                </span>
               </div>
             </div>
           </div>
@@ -1009,23 +1059,6 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
             )}
           </div>
 
-          {/* Dynamic note with final price: extra charge will be added depending on customer selection */}
-          {addonNotice && (
-            <div className="bg-amber-50/95 border-2 border-amber-200/90 rounded-2xl p-4 text-left flex items-start gap-3 shadow-xs">
-              <div className="w-7 h-7 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Info className="w-4 h-4 text-amber-800" />
-              </div>
-              <div className="space-y-1 text-xs">
-                <h4 className="font-bold text-amber-950 text-sm">
-                  {addonNotice.title}
-                </h4>
-                <p className="text-amber-900 leading-relaxed">
-                  {addonNotice.description}
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Included in your move-out cleaning checklist */}
           <div className="space-y-2.5 bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl">
             <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider text-center">
@@ -1107,15 +1140,6 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
           <h2 className="text-xl font-bold text-gray-900 font-display">
             Tack! Vi kontaktar dig inom kort med din bokningsbekräftelse.
           </h2>
-          {addonNotice && (
-            <div className="bg-amber-50/90 border border-amber-200/90 rounded-xl p-3 text-xs text-amber-900 max-w-sm mx-auto text-left flex items-start gap-2.5">
-              <Info className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold">{addonNotice.title}</p>
-                <p className="text-amber-800 text-[11px] mt-0.5">Vi har noterat dina önskemål och återkommer med fullständigt underlag.</p>
-              </div>
-            </div>
-          )}
           <p className="text-sm text-gray-600">
             Vill du prata direkt? Ring oss på{' '}
             <a href="tel:0101753040" className="text-brand font-bold hover:underline">

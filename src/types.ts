@@ -34,6 +34,7 @@ export interface FormValues {
   move_date?: string;
   sprojsFonster?: boolean;
   inglasadAltan?: boolean;
+  oppningsbaraFonster?: boolean;
   message?: string;
   suggested_price?: number | string;
   suggestedPrice?: number | string;
