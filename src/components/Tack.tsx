@@ -84,28 +84,33 @@ export default function Tack({ serviceType, cityName, onGoBack }: TackProps) {
         </div>
 
         {/* Google review micro badge */}
-        <a
-          href="https://maps.app.goo.gl/MJpJGKZWUqxDnRWL7"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-1.5 text-xs text-gray-500 mb-8 border-t border-gray-100 pt-6 hover:text-brand transition-colors mx-auto cursor-pointer"
-        >
-          <span className="font-semibold text-gray-700">Vill du se vad andra tycker?</span>
-          <div className="flex items-center text-amber-500">
-            <Star className="w-3.5 h-3.5 fill-amber-500" />
-            <span className="ml-1 text-gray-600 font-bold hover:underline">4.8/5 på Google</span>
-          </div>
-        </a>
+        <div className="border-t border-gray-100 pt-6 mb-5 flex justify-center">
+          <a
+            href="https://maps.app.goo.gl/MJpJGKZWUqxDnRWL7"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-brand transition-colors cursor-pointer group"
+          >
+            <span className="font-semibold text-gray-700">Vill du se vad andra tycker?</span>
+            <div className="flex items-center text-amber-500">
+              <Star className="w-3.5 h-3.5 fill-amber-500" />
+              <span className="ml-1 text-gray-600 font-bold group-hover:underline">4.8/5 på Google</span>
+            </div>
+          </a>
+        </div>
 
         {/* Back Button */}
-        <button
-          onClick={onGoBack}
-          className="inline-flex items-center justify-center text-sm font-semibold text-gray-600 hover:text-brand transition-all cursor-pointer group"
-          id="tack-back-btn"
-        >
-          <ArrowLeft className="w-4 h-4 mr-1.5 group-hover:-translate-x-1 transition-transform" />
-          <span>Gå tillbaka till kalkylatorn</span>
-        </button>
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onGoBack}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 hover:text-brand hover:border-gray-300 font-bold text-sm shadow-xs hover:shadow-sm active:scale-98 transition-all duration-200 cursor-pointer group"
+            id="tack-back-btn"
+          >
+            <ArrowLeft className="w-4 h-4 text-gray-500 group-hover:text-brand group-hover:-translate-x-0.5 transition-all" />
+            <span>Gå tillbaka till kalkylatorn</span>
+          </button>
+        </div>
 
       </div>
     </div>

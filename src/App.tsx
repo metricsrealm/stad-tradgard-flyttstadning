@@ -217,8 +217,10 @@ export default function App() {
 
   // Re-route back to interactive kalkylator
   const handleResetForm = () => {
-    window.history.pushState({}, '', '/');
     setIsTackPage(false);
+    const targetUrl = activeCity ? `/?city=${encodeURIComponent(activeCity)}` : '/';
+    window.history.pushState({}, '', targetUrl);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const serviceConfig = serviceConfigs[activeService];
