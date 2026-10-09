@@ -1058,7 +1058,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
               Inga dolda avgifter
             </span>
             <h3 className="text-xl md:text-2xl font-black text-gray-900 font-display">
-              Ditt fasta pris efter RUT
+              Ditt pris efter RUT-avdrag
             </h3>
             <p className="text-xs text-gray-500">
               {squareMeter || 70} kvm bostadsyta{city ? ` i ${city}` : ''}
