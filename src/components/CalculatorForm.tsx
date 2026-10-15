@@ -70,21 +70,45 @@ const pushLeadToDataLayer = (
   }
 };
 
-// Helper to submit the lead data with robust fallback
+const LIVE_CRM_ENDPOINT = "https://stadochtradgard.se/dashboard/submit_form";
+const LANDING_PAGE_FORM_NAME = "Flyttstädning";
+
+// Helper to normalize service_type to one of the 4 allowed values:
+// Fönsterputsning (or window_cleaning), Hemstäd, Flyttstädning, Företagskunder
+const normalizeServiceType = (service?: string): string => {
+  if (!service) return "Flyttstädning";
+  const s = service.toLowerCase();
+  if (s.includes("fönster") || s.includes("fonster") || s.includes("window")) {
+    return "Fönsterputsning";
+  }
+  if (s.includes("hem") || s.includes("home")) {
+    return "Hemstäd";
+  }
+  if (s.includes("företag") || s.includes("foretag") || s.includes("kontor") || s.includes("business")) {
+    return "Företagskunder";
+  }
+  return "Flyttstädning";
+};
+
+// Helper to submit the lead data directly to the live CRM endpoint with robust fallbacks
 const submitLeadToCRM = async (payload: FormValues) => {
-  console.log("Attempting CRM submission via proxy...", payload);
+  console.log("Submitting lead data...", payload);
 
   const searchParams = new URLSearchParams(window.location.search);
   const formattedPayload = {
+    ...payload,
+    service_type: normalizeServiceType(payload.service_type || payload.serviceType),
+    form: payload.form || LANDING_PAGE_FORM_NAME,
     name: payload.name || "",
     phone: payload.phone || "",
     email: payload.email || "",
     square_meter: typeof payload.square_meter === 'number' 
       ? payload.square_meter 
-      : (parseInt(String(payload.square_meter || payload.squareMeter)) || 70),
+      : (parseInt(String(payload.square_meter || payload.squareMeter || '')) || 70),
     city: payload.city || "",
     address: payload.address || payload.city || "",
     move_date: payload.move_date || payload.cleaning_date || payload.cleaningDate || "",
+    cleaning_date: payload.cleaning_date || payload.move_date || payload.cleaningDate || "",
     message: payload.message || payload.comment || "",
     comment: payload.comment || payload.message || "",
     suggested_price: typeof payload.suggested_price === 'number'
@@ -93,7 +117,6 @@ const submitLeadToCRM = async (payload: FormValues) => {
     button_click: payload.button_click || "no",
     is_button_click: payload.is_button_click || payload.button_click || "no",
     user_type: payload.user_type || "Privatperson",
-    service_type: payload.service_type || "Moving cleaning",
     user_agent: payload.user_agent || navigator.userAgent || "",
     utm_source: payload.utm_source || searchParams.get("utm_source") || "",
     utm_medium: payload.utm_medium || searchParams.get("utm_medium") || "",
@@ -104,36 +127,63 @@ const submitLeadToCRM = async (payload: FormValues) => {
     fbclid: payload.fbclid || searchParams.get("fbclid") || ""
   };
 
+  // 1. Direct POST to live endpoint (works seamlessly without backend on landing pages)
   try {
-    const resp = await fetch("/api/submit-lead", {
+    console.log(`Submitting direct POST to ${LIVE_CRM_ENDPOINT}:`, formattedPayload);
+    const resp = await fetch(LIVE_CRM_ENDPOINT, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Accept": "application/json"
       },
       body: JSON.stringify(formattedPayload)
     });
 
     if (resp.ok) {
       const data = await resp.json();
-      console.log("CRM submission via proxy succeeded:", data);
+      console.log("Direct CRM submission succeeded:", data);
       return data;
     }
 
-    console.warn(`Proxy returned status ${resp.status}. Falling back to direct CRM POST...`);
-  } catch (err) {
-    console.error("Proxy CRM submission failed/errored. Falling back to direct CRM POST...", err);
+    console.warn(`Direct endpoint returned status ${resp.status}. Trying proxy fallback...`);
+  } catch (directErr) {
+    console.warn("Direct fetch to live endpoint failed (e.g. cross-origin restrictions in preview), trying proxy...", directErr);
   }
 
-  // Fallback: Direct POST to submit_quote.php with form urlencoded
+  // 2. Proxy fallback via /api/submit-lead (in dev/server environment)
   try {
-    console.log("Executing fallback direct POST to http://stadochtradgard.se/dashboard/submit_quote.php...");
-
-    const params = new URLSearchParams();
-    Object.entries(formattedPayload).forEach(([k, v]) => {
-      params.append(k, String(v ?? ""));
+    console.log("Submitting via /api/submit-lead proxy...");
+    const proxyResp = await fetch("/api/submit-lead", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(formattedPayload)
     });
 
-    await fetch("http://stadochtradgard.se/dashboard/submit_quote.php", {
+    if (proxyResp.ok) {
+      const proxyData = await proxyResp.json();
+      console.log("Proxy CRM submission succeeded:", proxyData);
+      return proxyData;
+    }
+  } catch (proxyErr) {
+    console.warn("Proxy submission failed or not available:", proxyErr);
+  }
+
+  // 3. Simple form urlencoded fallback with mode: 'no-cors' so browser sends payload without preflight block
+  try {
+    console.log("Executing no-cors fallback direct POST to", LIVE_CRM_ENDPOINT);
+    const params = new URLSearchParams();
+    Object.entries(formattedPayload).forEach(([k, v]) => {
+      if (typeof v === 'object' && v !== null) {
+        params.append(k, JSON.stringify(v));
+      } else {
+        params.append(k, String(v ?? ""));
+      }
+    });
+
+    await fetch(LIVE_CRM_ENDPOINT, {
       method: "POST",
       mode: "no-cors",
       headers: {
@@ -142,10 +192,10 @@ const submitLeadToCRM = async (payload: FormValues) => {
       body: params.toString()
     });
 
-    console.log("Direct fallback POST completed successfully.");
-    return { success: true, fallback: true };
+    console.log("Direct no-cors POST sent successfully.");
+    return { result: "success", fallback: true };
   } catch (fallbackErr) {
-    console.error("Direct CRM fallback POST failed:", fallbackErr);
+    console.error("All CRM submission methods failed:", fallbackErr);
     throw fallbackErr;
   }
 };
@@ -403,11 +453,24 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         comment: fullMessage,
         suggested_price: flyttPriceInfo.priceAfterRUT,
         suggestedPrice: flyttPriceInfo.formattedPrice,
+        price_details: {
+          price_after_rut: flyttPriceInfo.priceAfterRUT,
+          price_before_rut: flyttPriceInfo.priceBeforeRUT,
+          formatted_price: flyttPriceInfo.formattedPrice,
+          sqm_used: flyttPriceInfo.sqmUsed
+        },
+        addons,
+        addon_flags: {
+          sprojs_fonster: sprojsFonster,
+          inglasad_altan: inglasadAltan,
+          oppningsbara_fonster: oppningsbaraFonster
+        },
         button_click: "no",
         is_button_click: "no",
         user_agent: navigator.userAgent,
         user_type: "Privatperson",
-        service_type: "Moving cleaning",
+        service_type: "Flyttstädning",
+        form: "Flyttstädning",
         utm_source: utmParams.utm_source,
         utm_medium: utmParams.utm_medium,
         utm_campaign: utmParams.utm_campaign,
@@ -498,11 +561,24 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         comment: fullMessage,
         suggested_price: flyttPriceInfo.priceAfterRUT,
         suggestedPrice: flyttPriceInfo.formattedPrice,
+        price_details: {
+          price_after_rut: flyttPriceInfo.priceAfterRUT,
+          price_before_rut: flyttPriceInfo.priceBeforeRUT,
+          formatted_price: flyttPriceInfo.formattedPrice,
+          sqm_used: flyttPriceInfo.sqmUsed
+        },
+        addons,
+        addon_flags: {
+          sprojs_fonster: sprojsFonster,
+          inglasad_altan: inglasadAltan,
+          oppningsbara_fonster: oppningsbaraFonster
+        },
         button_click: "yes",
         is_button_click: "yes",
         user_agent: navigator.userAgent,
         user_type: "Privatperson",
-        service_type: "Moving cleaning",
+        service_type: "Flyttstädning",
+        form: "Flyttstädning",
         utm_source: utmParams.utm_source,
         utm_medium: utmParams.utm_medium,
         utm_campaign: utmParams.utm_campaign,
@@ -525,6 +601,8 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
           body: JSON.stringify({
             action: 4,
             customer_id: idToUpdate,
+            form: "Flyttstädning",
+            service_type: "Flyttstädning",
             name,
             email,
             phone,

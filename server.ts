@@ -10,7 +10,7 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // API router - Proxy quote submissions to http://stadochtradgard.se/dashboard/submit_quote.php
+  // API router - Proxy submissions to https://stadochtradgard.se/dashboard/submit_form
   app.post("/api/submit-lead", async (req, res) => {
     try {
       const incomingUa = (req.headers["user-agent"] as string) || "";
@@ -37,26 +37,29 @@ async function startServer() {
         priceNum = isNaN(parsed) ? 0 : parsed;
       }
 
-      // Sanitize move_date to prevent 400 rejection from PHP server if date is in the past
       let moveDate = body.move_date || body.cleaning_date || body.cleaningDate || "";
-      if (moveDate) {
-        try {
-          const parsedDate = new Date(moveDate);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          if (isNaN(parsedDate.getTime()) || parsedDate < today) {
-            console.log("Move date was in the past or invalid:", moveDate, "- setting to empty for CRM submission.");
-            moveDate = "";
-          }
-        } catch {
-          moveDate = "";
-        }
-      }
 
       const clientUserAgent = body.user_agent || incomingUa || userAgent;
       const fullComment = body.comment || body.message || "";
 
+      // Normalize service_type to one of: Fönsterputsning (or window_cleaning), Hemstäd, Flyttstädning, Företagskunder
+      let serviceType = "Flyttstädning";
+      const rawService = String(body.service_type || body.serviceType || "").toLowerCase();
+      if (rawService.includes("fönster") || rawService.includes("fonster") || rawService.includes("window")) {
+        serviceType = "Fönsterputsning";
+      } else if (rawService.includes("hem") || rawService.includes("home")) {
+        serviceType = "Hemstäd";
+      } else if (rawService.includes("företag") || rawService.includes("foretag") || rawService.includes("kontor") || rawService.includes("business")) {
+        serviceType = "Företagskunder";
+      } else {
+        serviceType = "Flyttstädning";
+      }
+
+      // Everything else is forwarded, including nested objects and arrays
       const submitPayload = {
+        ...body,
+        service_type: serviceType,
+        form: body.form || "Flyttstädning",
         name: body.name || "",
         phone: body.phone || "",
         email: body.email || "",
@@ -64,6 +67,7 @@ async function startServer() {
         city: body.city || "",
         address: body.address || body.city || "",
         move_date: moveDate,
+        cleaning_date: moveDate,
         message: fullComment,
         comment: fullComment,
         suggested_price: priceNum,
@@ -71,37 +75,24 @@ async function startServer() {
         is_button_click: body.is_button_click || body.button_click || "no",
         user_agent: clientUserAgent,
         user_ip: body.user_ip || clientIp,
-        user_type: body.user_type || "Privatperson",
-        service_type: body.service_type || "Moving cleaning",
-        utm_source: body.utm_source || "",
-        utm_medium: body.utm_medium || "",
-        utm_campaign: body.utm_campaign || "",
-        utm_term: body.utm_term || "",
-        utm_content: body.utm_content || "",
-        gclid: body.gclid || "",
-        fbclid: body.fbclid || ""
+        user_type: body.user_type || "Privatperson"
       };
 
-      console.log("Submitting quote payload to http://stadochtradgard.se/dashboard/submit_quote.php:", submitPayload);
+      console.log("Submitting lead payload to https://stadochtradgard.se/dashboard/submit_form:", submitPayload);
 
-      const params = new URLSearchParams();
-      Object.entries(submitPayload).forEach(([key, val]) => {
-        params.append(key, String(val ?? ""));
-      });
-
-      const response = await fetch("http://stadochtradgard.se/dashboard/submit_quote.php", {
+      const response = await fetch("https://stadochtradgard.se/dashboard/submit_form", {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": "application/json",
           "User-Agent": userAgent,
           "Accept": "application/json, text/plain, */*",
           "Accept-Language": "sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7"
         },
-        body: params.toString()
+        body: JSON.stringify(submitPayload)
       });
 
       const responseText = await response.text();
-      console.log("CRM submit_quote response status:", response.status, responseText);
+      console.log("CRM submit_form response status:", response.status, responseText);
 
       let parsedData: any = null;
       try {
@@ -120,7 +111,7 @@ async function startServer() {
         textExcerpt: responseText.substring(0, 300)
       });
     } catch (e: any) {
-      console.error("Error proxying submit_quote to PHP server:", e);
+      console.error("Error proxying to submit_form:", e);
       res.json({ success: false, error: e.message });
     }
   });

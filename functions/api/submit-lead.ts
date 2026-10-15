@@ -11,29 +11,37 @@ export async function onRequestPost(context: any) {
       "";
     const userAgent = request.headers.get("user-agent") || "";
 
+    // Normalize service_type to one of: Fönsterputsning (or window_cleaning), Hemstäd, Flyttstädning, Företagskunder
+    let serviceType = "Flyttstädning";
+    const rawService = String(body.service_type || body.serviceType || "").toLowerCase();
+    if (rawService.includes("fönster") || rawService.includes("fonster") || rawService.includes("window")) {
+      serviceType = "Fönsterputsning";
+    } else if (rawService.includes("hem") || rawService.includes("home")) {
+      serviceType = "Hemstäd";
+    } else if (rawService.includes("företag") || rawService.includes("foretag") || rawService.includes("kontor") || rawService.includes("business")) {
+      serviceType = "Företagskunder";
+    } else {
+      serviceType = "Flyttstädning";
+    }
+
     // Build CRM payload
     const payload = {
       ...body,
+      service_type: serviceType,
+      form: body.form || "Flyttstädning",
       user_agent: body.user_agent || userAgent,
       user_ip: body.user_ip || clientIp,
     };
 
-    // Serialize as standard application/x-www-form-urlencoded
-    const params = new URLSearchParams();
-    Object.entries(payload).forEach(([key, val]) => {
-      if (val !== undefined && val !== null) {
-        params.append(key, String(val));
-      }
-    });
-
-    // Proxy the request to the PHP backend
-    const response = await fetch("https://stadochtradgard.se/calculator_submit.php", {
+    // Proxy the request to the live submit_form endpoint
+    const response = await fetch("https://stadochtradgard.se/dashboard/submit_form", {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/json",
         "User-Agent": userAgent,
+        "Accept": "application/json"
       },
-      body: params,
+      body: JSON.stringify(payload),
     });
 
     const responseText = await response.text();

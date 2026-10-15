@@ -19,6 +19,7 @@ export interface CityConfig {
 export interface FormValues {
   serviceType?: string;
   service_type?: string;
+  form?: string;
   squareMeter?: string;
   square_meter?: number | string;
   antalRum?: string;
@@ -35,6 +36,9 @@ export interface FormValues {
   sprojsFonster?: boolean;
   inglasadAltan?: boolean;
   oppningsbaraFonster?: boolean;
+  addons?: string[];
+  addon_flags?: Record<string, boolean>;
+  price_details?: Record<string, any>;
   message?: string;
   suggested_price?: number | string;
   suggestedPrice?: number | string;
