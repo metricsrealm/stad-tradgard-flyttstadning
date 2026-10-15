@@ -91,7 +91,7 @@ const normalizeServiceType = (service?: string): string => {
   return "Flyttstädning";
 };
 
-// Helper to submit the lead data directly to the live CRM endpoint with robust fallbacks
+// Helper to submit the lead data directly to CRM endpoint with seamless routing
 const submitLeadToCRM = async (payload: FormValues) => {
   console.log("Submitting lead data...", payload);
 
@@ -121,7 +121,7 @@ const submitLeadToCRM = async (payload: FormValues) => {
     button_click: payload.button_click || "no",
     is_button_click: payload.is_button_click || payload.button_click || "no",
     user_type: payload.user_type || "Privatperson",
-    user_agent: payload.user_agent || navigator.userAgent || "",
+    user_agent: payload.user_agent || (typeof navigator !== "undefined" ? navigator.userAgent : "") || "",
     utm_source: payload.utm_source || searchParams.get("utm_source") || "",
     utm_medium: payload.utm_medium || searchParams.get("utm_medium") || "",
     utm_campaign: payload.utm_campaign || searchParams.get("utm_campaign") || "",
@@ -131,7 +131,34 @@ const submitLeadToCRM = async (payload: FormValues) => {
     fbclid: payload.fbclid || searchParams.get("fbclid") || ""
   };
 
-  // 1. Direct POST to live endpoint (works seamlessly without backend on landing pages)
+  const isSameOriginCRM = typeof window !== "undefined" && window.location.hostname === "stadochtradgard.se";
+
+  // 1. If not on stadochtradgard.se root domain, prefer same-origin proxy /api/submit-lead
+  // (Prevents browser CORS preflight blocking on subdomains like flyttstadning.stadochtradgard.se)
+  if (!isSameOriginCRM) {
+    try {
+      console.log("Submitting via /api/submit-lead...");
+      const proxyResp = await fetch("/api/submit-lead", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(formattedPayload)
+      });
+
+      if (proxyResp.ok) {
+        const proxyData = await proxyResp.json();
+        console.log("CRM submission succeeded via /api/submit-lead:", proxyData);
+        return proxyData;
+      }
+      console.warn(`/api/submit-lead returned status ${proxyResp.status}, falling back...`);
+    } catch (proxyErr) {
+      console.warn("Proxy /api/submit-lead unavailable, trying direct endpoints:", proxyErr);
+    }
+  }
+
+  // 2. Direct POST to live endpoint (when on same-origin or as fallback)
   try {
     console.log(`Submitting direct POST to ${LIVE_CRM_ENDPOINT}:`, formattedPayload);
     const resp = await fetch(LIVE_CRM_ENDPOINT, {
@@ -149,35 +176,13 @@ const submitLeadToCRM = async (payload: FormValues) => {
       return data;
     }
 
-    console.warn(`Direct endpoint returned status ${resp.status}. Trying proxy fallback...`);
+    console.warn(`Direct endpoint returned status ${resp.status}`);
   } catch (directErr) {
-    console.warn("Direct fetch to live endpoint failed (e.g. cross-origin restrictions in preview), trying proxy...", directErr);
+    console.warn("Direct fetch to live endpoint failed:", directErr);
   }
 
-  // 2. Proxy fallback via /api/submit-lead (in dev/server environment)
+  // 3. Fallback form submission with mode: 'no-cors' if all else fails
   try {
-    console.log("Submitting via /api/submit-lead proxy...");
-    const proxyResp = await fetch("/api/submit-lead", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(formattedPayload)
-    });
-
-    if (proxyResp.ok) {
-      const proxyData = await proxyResp.json();
-      console.log("Proxy CRM submission succeeded:", proxyData);
-      return proxyData;
-    }
-  } catch (proxyErr) {
-    console.warn("Proxy submission failed or not available:", proxyErr);
-  }
-
-  // 3. Simple form urlencoded fallback with mode: 'no-cors' so browser sends payload without preflight block
-  try {
-    console.log("Executing no-cors fallback direct POST to", LIVE_CRM_ENDPOINT);
     const params = new URLSearchParams();
     Object.entries(formattedPayload).forEach(([k, v]) => {
       if (typeof v === 'object' && v !== null) {
@@ -196,91 +201,70 @@ const submitLeadToCRM = async (payload: FormValues) => {
       body: params.toString()
     });
 
-    console.log("Direct no-cors POST sent successfully.");
     return { result: "success", fallback: true };
   } catch (fallbackErr) {
     console.error("All CRM submission methods failed:", fallbackErr);
-    throw fallbackErr;
+    return { result: "error", message: String(fallbackErr) };
   }
 };
 
-// Dedicated helper to update lead status and is_button_click in CRM
+// Dedicated helper to update lead status and is_button_click in CRM without CORS errors
 const updateLeadInCRM = async (updateData: Record<string, any>) => {
   console.log("Updating lead in CRM with is_button_click=yes...", updateData);
+
+  const targetId = updateData.customer_id || updateData.id || updateData.lead_id;
 
   const payload = {
     action: 4,
     ...updateData,
+    customer_id: targetId,
+    id: targetId,
+    lead_id: targetId,
     button_click: "yes",
     is_button_click: "yes"
   };
 
-  // 1. Direct JSON POST to https://stadochtradgard.se/dashboard/update_data
-  try {
-    const directResp = await fetch(LIVE_UPDATE_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json, text/plain, */*"
-      },
-      body: JSON.stringify(payload)
-    });
-    if (directResp.ok) {
-      console.log("Direct update_data POST succeeded");
+  const isSameOriginCRM = typeof window !== "undefined" && window.location.hostname === "stadochtradgard.se";
+
+  // 1. Prefer same-origin proxy /api/update-lead (Never blocked by CORS on subdomains)
+  if (!isSameOriginCRM) {
+    try {
+      const proxyResp = await fetch("/api/update-lead", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      if (proxyResp.ok) {
+        const data = await proxyResp.json();
+        console.log("Lead update succeeded via /api/update-lead:", data);
+        return data;
+      }
+    } catch (proxyErr) {
+      console.warn("Proxy /api/update-lead failed, attempting direct update:", proxyErr);
     }
-  } catch (directErr) {
-    console.warn("Direct update_data POST failed (likely CORS in preview), trying fallbacks...", directErr);
   }
 
-  // 2. Direct simple request POST with text/plain (avoids CORS preflight)
-  try {
-    await fetch(LIVE_UPDATE_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain"
-      },
-      body: JSON.stringify(payload)
-    });
-  } catch (e) {}
-
-  // 3. Proxy POST via /api/update-lead (same-origin, works in Vite dev server & Cloudflare Pages)
-  try {
-    const proxyResp = await fetch("/api/update-lead", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-    if (proxyResp.ok) {
-      const data = await proxyResp.json();
-      console.log("Proxy /api/update-lead succeeded:", data);
-      return data;
+  // 2. Direct JSON POST only if on same origin (stadochtradgard.se)
+  if (isSameOriginCRM) {
+    try {
+      const directResp = await fetch(LIVE_UPDATE_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json, text/plain, */*"
+        },
+        body: JSON.stringify(payload)
+      });
+      if (directResp.ok) {
+        console.log("Direct update_data POST succeeded");
+      }
+    } catch (directErr) {
+      console.warn("Direct update_data POST failed:", directErr);
     }
-  } catch (proxyErr) {
-    console.warn("Proxy /api/update-lead failed:", proxyErr);
   }
-
-  // 4. Also notify submit_form with is_button_click: "yes" as backup
-  try {
-    await fetch(LIVE_CRM_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({
-        ...payload,
-        service_type: updateData.service_type || "Flyttstädning",
-        form: updateData.form || LANDING_PAGE_FORM_NAME,
-        name: updateData.name || "",
-        phone: updateData.phone || "",
-        button_click: "yes",
-        is_button_click: "yes"
-      })
-    });
-  } catch (e) {}
 };
 
 export default function CalculatorForm({ initialService, initialCity, onSubmitSuccess }: CalculatorFormProps) {

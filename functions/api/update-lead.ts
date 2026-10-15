@@ -8,24 +8,31 @@ export async function onRequestPost(context: any) {
       request.headers.get("cf-connecting-ip") ||
       request.headers.get("x-real-ip") ||
       "";
-    const userAgent = request.headers.get("user-agent") || "";
+    
+    const defaultBrowserUA =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+    const rawUa = request.headers.get("user-agent") || "";
+    const userAgent = rawUa && !rawUa.toLowerCase().includes("curl") ? rawUa : defaultBrowserUA;
 
-    const targetCustomerId = body.customer_id || body.id;
+    const targetCustomerId = body.customer_id || body.id || body.lead_id;
     const fullComment = body.comment || body.message || "";
 
     const updatePayload = {
-      action: body.action || 4,
-      customer_id: targetCustomerId,
-      id: targetCustomerId,
+      action: Number(body.action) || 4,
+      customer_id: Number(targetCustomerId) || targetCustomerId,
+      id: Number(targetCustomerId) || targetCustomerId,
+      lead_id: Number(targetCustomerId) || targetCustomerId,
       name: body.name || "",
       email: body.email || "",
       phone: body.phone || "",
-      square_meter: body.square_meter || body.squareMeter || 70,
+      square_meter: typeof body.square_meter === "number" ? body.square_meter : (parseInt(body.square_meter || body.squareMeter) || 70),
       city: body.city || "",
       comment: fullComment,
       message: fullComment,
       button_click: "yes",
       is_button_click: "yes",
+      service_type: body.service_type || "Flyttstädning",
+      form: body.form || "Flyttstädning",
       user_agent: body.user_agent || userAgent,
       user_ip: body.user_ip || clientIp,
       utm_source: body.utm_source || "",
@@ -35,7 +42,9 @@ export async function onRequestPost(context: any) {
       fbclid: body.fbclid || ""
     };
 
-    // 1. Update via https://stadochtradgard.se/dashboard/update_data (JSON)
+    console.log(`[update-lead] Updating CRM lead ${targetCustomerId} with is_button_click=yes`);
+
+    // 1. Primary update via https://stadochtradgard.se/dashboard/update_data (JSON)
     const updateResponse = await fetch("https://stadochtradgard.se/dashboard/update_data", {
       method: "POST",
       headers: {
@@ -52,7 +61,7 @@ export async function onRequestPost(context: any) {
       parsedData = JSON.parse(responseText);
     } catch {}
 
-    // 2. Also sync with submit_form
+    // 2. Also forward to submit_form with is_button_click: "yes" and form: "Flyttstädning"
     try {
       await fetch("https://stadochtradgard.se/dashboard/submit_form", {
         method: "POST",
@@ -95,6 +104,7 @@ export async function onRequestPost(context: any) {
       }
     );
   } catch (err: any) {
+    console.error("[update-lead] Error updating lead:", err);
     return new Response(
       JSON.stringify({
         success: false,
