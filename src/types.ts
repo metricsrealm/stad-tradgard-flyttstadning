@@ -49,8 +49,9 @@ export interface FormValues {
   utm_campaign?: string;
   user_agent?: string;
   user_ip?: string;
+  id?: number | string;
   customer_id?: number | string;
-  action?: number;
+  action?: number | string;
   contact_status?: string;
   offer_service?: string;
   potential_service?: string;

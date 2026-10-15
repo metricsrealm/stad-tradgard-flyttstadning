@@ -71,6 +71,7 @@ const pushLeadToDataLayer = (
 };
 
 const LIVE_CRM_ENDPOINT = "https://stadochtradgard.se/dashboard/submit_form";
+const LIVE_UPDATE_ENDPOINT = "https://stadochtradgard.se/dashboard/update_data";
 const LANDING_PAGE_FORM_NAME = "Flyttstädning";
 
 // Helper to normalize service_type to one of the 4 allowed values:
@@ -95,8 +96,11 @@ const submitLeadToCRM = async (payload: FormValues) => {
   console.log("Submitting lead data...", payload);
 
   const searchParams = new URLSearchParams(window.location.search);
+  const targetLeadId = payload.id || payload.customer_id;
+
   const formattedPayload = {
     ...payload,
+    ...(targetLeadId ? { id: targetLeadId, customer_id: targetLeadId } : {}),
     service_type: normalizeServiceType(payload.service_type || payload.serviceType),
     form: payload.form || LANDING_PAGE_FORM_NAME,
     name: payload.name || "",
@@ -198,6 +202,85 @@ const submitLeadToCRM = async (payload: FormValues) => {
     console.error("All CRM submission methods failed:", fallbackErr);
     throw fallbackErr;
   }
+};
+
+// Dedicated helper to update lead status and is_button_click in CRM
+const updateLeadInCRM = async (updateData: Record<string, any>) => {
+  console.log("Updating lead in CRM with is_button_click=yes...", updateData);
+
+  const payload = {
+    action: 4,
+    ...updateData,
+    button_click: "yes",
+    is_button_click: "yes"
+  };
+
+  // 1. Direct JSON POST to https://stadochtradgard.se/dashboard/update_data
+  try {
+    const directResp = await fetch(LIVE_UPDATE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/plain, */*"
+      },
+      body: JSON.stringify(payload)
+    });
+    if (directResp.ok) {
+      console.log("Direct update_data POST succeeded");
+    }
+  } catch (directErr) {
+    console.warn("Direct update_data POST failed (likely CORS in preview), trying fallbacks...", directErr);
+  }
+
+  // 2. Direct simple request POST with text/plain (avoids CORS preflight)
+  try {
+    await fetch(LIVE_UPDATE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain"
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {}
+
+  // 3. Proxy POST via /api/update-lead (same-origin, works in Vite dev server & Cloudflare Pages)
+  try {
+    const proxyResp = await fetch("/api/update-lead", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    if (proxyResp.ok) {
+      const data = await proxyResp.json();
+      console.log("Proxy /api/update-lead succeeded:", data);
+      return data;
+    }
+  } catch (proxyErr) {
+    console.warn("Proxy /api/update-lead failed:", proxyErr);
+  }
+
+  // 4. Also notify submit_form with is_button_click: "yes" as backup
+  try {
+    await fetch(LIVE_CRM_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        ...payload,
+        service_type: updateData.service_type || "Flyttstädning",
+        form: updateData.form || LANDING_PAGE_FORM_NAME,
+        name: updateData.name || "",
+        phone: updateData.phone || "",
+        button_click: "yes",
+        is_button_click: "yes"
+      })
+    });
+  } catch (e) {}
 };
 
 export default function CalculatorForm({ initialService, initialCity, onSubmitSuccess }: CalculatorFormProps) {
@@ -485,9 +568,12 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
       submitLeadToCRM(payload)
         .then((data) => {
           console.log("Step 3 CRM submission success:", data);
-          const retrievedId = data?.id || data?.data?.id || data?.data?.customer_id;
+          const retrievedId = data?.id || data?.customer_id || data?.data?.id || data?.data?.customer_id;
           if (retrievedId) {
             setCustomerId(retrievedId);
+            try {
+              sessionStorage.setItem("stadochtradgard_lead_id", String(retrievedId));
+            } catch (e) {}
           }
           if (!hasFiredLeadEvent) {
             pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
@@ -546,7 +632,17 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
       const gclidVal = utmParams.gclid || new URLSearchParams(window.location.search).get("gclid") || "";
       const fbclidVal = utmParams.fbclid || new URLSearchParams(window.location.search).get("fbclid") || "";
 
+      let leadIdToUse = customerId;
+      if (!leadIdToUse && typeof window !== "undefined") {
+        try {
+          const stored = sessionStorage.getItem("stadochtradgard_lead_id");
+          if (stored) leadIdToUse = stored;
+        } catch (e) {}
+      }
+
       const payload: FormValues = {
+        ...(leadIdToUse ? { id: leadIdToUse, customer_id: leadIdToUse } : {}),
+        action: 4,
         name,
         phone,
         email,
@@ -588,41 +684,59 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         fbclid: fbclidVal
       };
 
-      console.log("Submitting final payload to CRM (button_click=yes)...", payload);
+      console.log("Submitting final payload to CRM (button_click=yes, is_button_click=yes)...", payload);
 
       const data = await submitLeadToCRM(payload);
       console.log("CRM submission response:", data);
 
-      const idToUpdate = customerId || data?.id || data?.data?.id || data?.data?.customer_id;
-      if (idToUpdate) {
-        fetch("/api/update-lead", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: 4,
-            customer_id: idToUpdate,
-            form: "Flyttstädning",
-            service_type: "Flyttstädning",
-            name,
-            email,
-            phone,
-            square_meter: parseInt(squareMeter) || 70,
-            city,
-            comment: fullMessage,
-            message: fullMessage,
-            button_click: "yes",
-            is_button_click: "yes",
-            user_agent: navigator.userAgent,
-            utm_source: utmParams.utm_source || "",
-            utm_medium: utmParams.utm_medium || "",
-            utm_campaign: utmParams.utm_campaign || "",
-            utm_term: utmParams.utm_term || "",
-            utm_content: utmParams.utm_content || "",
-            gclid: gclidVal,
-            fbclid: fbclidVal
-          })
-        }).catch(err => console.error("Update lead error:", err));
+      const resolvedId = leadIdToUse || data?.id || data?.customer_id || data?.data?.id || data?.data?.customer_id;
+      if (resolvedId) {
+        setCustomerId(resolvedId);
+        try {
+          sessionStorage.setItem("stadochtradgard_lead_id", String(resolvedId));
+        } catch (e) {}
       }
+
+      // Explicitly trigger lead update to ensure is_button_click is set to "yes" in CRM
+      await updateLeadInCRM({
+        customer_id: resolvedId,
+        id: resolvedId,
+        service_type: "Flyttstädning",
+        form: "Flyttstädning",
+        name,
+        email,
+        phone,
+        square_meter: parseInt(squareMeter) || 70,
+        city,
+        address: address || city || "",
+        cleaning_date: cleaningDate,
+        move_date: cleaningDate,
+        comment: fullMessage,
+        message: fullMessage,
+        suggested_price: flyttPriceInfo.priceAfterRUT,
+        price_details: {
+          price_after_rut: flyttPriceInfo.priceAfterRUT,
+          price_before_rut: flyttPriceInfo.priceBeforeRUT,
+          formatted_price: flyttPriceInfo.formattedPrice,
+          sqm_used: flyttPriceInfo.sqmUsed
+        },
+        addons,
+        addon_flags: {
+          sprojs_fonster: sprojsFonster,
+          inglasad_altan: inglasadAltan,
+          oppningsbara_fonster: oppningsbaraFonster
+        },
+        button_click: "yes",
+        is_button_click: "yes",
+        user_agent: navigator.userAgent,
+        utm_source: utmParams.utm_source || "",
+        utm_medium: utmParams.utm_medium || "",
+        utm_campaign: utmParams.utm_campaign || "",
+        utm_term: utmParams.utm_term || "",
+        utm_content: utmParams.utm_content || "",
+        gclid: gclidVal,
+        fbclid: fbclidVal
+      });
 
       if (!hasFiredLeadEvent) {
         pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
@@ -1191,7 +1305,8 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
           </div>
 
           <input type="hidden" name="suggested_price" id="suggested_price" value={flyttPriceInfo.formattedPrice} />
-          <input type="hidden" name="button_click" id="button_click" value="1" />
+          <input type="hidden" name="button_click" id="button_click" value="yes" />
+          <input type="hidden" name="is_button_click" id="is_button_click" value="yes" />
 
           {/* Single Strong CTA Button */}
           <button

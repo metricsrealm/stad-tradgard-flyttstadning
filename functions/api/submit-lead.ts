@@ -45,10 +45,42 @@ export async function onRequestPost(context: any) {
     });
 
     const responseText = await response.text();
+    let parsedData: any = null;
+    try {
+      parsedData = JSON.parse(responseText);
+    } catch {}
+
+    const targetId = body.id || body.customer_id;
+    const leadId = parsedData?.id || parsedData?.customer_id || targetId || null;
+
+    if ((body.is_button_click === "yes" || body.button_click === "yes") && leadId) {
+      try {
+        await fetch("https://stadochtradgard.se/dashboard/update_data", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": userAgent,
+            "Accept": "application/json, text/plain, */*"
+          },
+          body: JSON.stringify({
+            action: 4,
+            customer_id: leadId,
+            id: leadId,
+            is_button_click: "yes",
+            button_click: "yes",
+            name: body.name || "",
+            phone: body.phone || "",
+            email: body.email || ""
+          })
+        });
+      } catch (err) {}
+    }
 
     return new Response(
       JSON.stringify({
-        success: true,
+        success: response.ok || response.status === 200 || parsedData?.result === "success",
+        id: leadId,
+        data: parsedData,
         textExcerpt: responseText.substring(0, 200),
       }),
       {
