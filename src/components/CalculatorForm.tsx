@@ -70,49 +70,21 @@ const pushLeadToDataLayer = (
   }
 };
 
-const LIVE_CRM_ENDPOINT = "https://stadochtradgard.se/dashboard/submit_form";
-const LIVE_UPDATE_ENDPOINT = "https://stadochtradgard.se/dashboard/update_data";
-const LANDING_PAGE_FORM_NAME = "Flyttstädning";
-
-// Helper to normalize service_type to one of the 4 allowed values:
-// Fönsterputsning (or window_cleaning), Hemstäd, Flyttstädning, Företagskunder
-const normalizeServiceType = (service?: string): string => {
-  if (!service) return "Flyttstädning";
-  const s = service.toLowerCase();
-  if (s.includes("fönster") || s.includes("fonster") || s.includes("window")) {
-    return "Fönsterputsning";
-  }
-  if (s.includes("hem") || s.includes("home")) {
-    return "Hemstäd";
-  }
-  if (s.includes("företag") || s.includes("foretag") || s.includes("kontor") || s.includes("business")) {
-    return "Företagskunder";
-  }
-  return "Flyttstädning";
-};
-
-// Helper to submit the lead data directly to CRM endpoint with seamless routing
+// Helper to submit the lead data with robust fallback
 const submitLeadToCRM = async (payload: FormValues) => {
-  console.log("Submitting lead data...", payload);
+  console.log("Attempting CRM submission via proxy...", payload);
 
   const searchParams = new URLSearchParams(window.location.search);
-  const targetLeadId = payload.id || payload.customer_id;
-
   const formattedPayload = {
-    ...payload,
-    ...(targetLeadId ? { id: targetLeadId, customer_id: targetLeadId } : {}),
-    service_type: normalizeServiceType(payload.service_type || payload.serviceType),
-    form: payload.form || LANDING_PAGE_FORM_NAME,
     name: payload.name || "",
     phone: payload.phone || "",
     email: payload.email || "",
     square_meter: typeof payload.square_meter === 'number' 
       ? payload.square_meter 
-      : (parseInt(String(payload.square_meter || payload.squareMeter || '')) || 70),
+      : (parseInt(String(payload.square_meter || payload.squareMeter)) || 70),
     city: payload.city || "",
     address: payload.address || payload.city || "",
     move_date: payload.move_date || payload.cleaning_date || payload.cleaningDate || "",
-    cleaning_date: payload.cleaning_date || payload.move_date || payload.cleaningDate || "",
     message: payload.message || payload.comment || "",
     comment: payload.comment || payload.message || "",
     suggested_price: typeof payload.suggested_price === 'number'
@@ -121,7 +93,8 @@ const submitLeadToCRM = async (payload: FormValues) => {
     button_click: payload.button_click || "no",
     is_button_click: payload.is_button_click || payload.button_click || "no",
     user_type: payload.user_type || "Privatperson",
-    user_agent: payload.user_agent || (typeof navigator !== "undefined" ? navigator.userAgent : "") || "",
+    service_type: payload.service_type || "Moving cleaning",
+    user_agent: payload.user_agent || navigator.userAgent || "",
     utm_source: payload.utm_source || searchParams.get("utm_source") || "",
     utm_medium: payload.utm_medium || searchParams.get("utm_medium") || "",
     utm_campaign: payload.utm_campaign || searchParams.get("utm_campaign") || "",
@@ -131,68 +104,36 @@ const submitLeadToCRM = async (payload: FormValues) => {
     fbclid: payload.fbclid || searchParams.get("fbclid") || ""
   };
 
-  const isSameOriginCRM = typeof window !== "undefined" && window.location.hostname === "stadochtradgard.se";
-
-  // 1. If not on stadochtradgard.se root domain, prefer same-origin proxy /api/submit-lead
-  // (Prevents browser CORS preflight blocking on subdomains like flyttstadning.stadochtradgard.se)
-  if (!isSameOriginCRM) {
-    try {
-      console.log("Submitting via /api/submit-lead...");
-      const proxyResp = await fetch("/api/submit-lead", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(formattedPayload)
-      });
-
-      if (proxyResp.ok) {
-        const proxyData = await proxyResp.json();
-        console.log("CRM submission succeeded via /api/submit-lead:", proxyData);
-        return proxyData;
-      }
-      console.warn(`/api/submit-lead returned status ${proxyResp.status}, falling back...`);
-    } catch (proxyErr) {
-      console.warn("Proxy /api/submit-lead unavailable, trying direct endpoints:", proxyErr);
-    }
-  }
-
-  // 2. Direct POST to live endpoint (when on same-origin or as fallback)
   try {
-    console.log(`Submitting direct POST to ${LIVE_CRM_ENDPOINT}:`, formattedPayload);
-    const resp = await fetch(LIVE_CRM_ENDPOINT, {
+    const resp = await fetch("/api/submit-lead", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(formattedPayload)
     });
 
     if (resp.ok) {
       const data = await resp.json();
-      console.log("Direct CRM submission succeeded:", data);
+      console.log("CRM submission via proxy succeeded:", data);
       return data;
     }
 
-    console.warn(`Direct endpoint returned status ${resp.status}`);
-  } catch (directErr) {
-    console.warn("Direct fetch to live endpoint failed:", directErr);
+    console.warn(`Proxy returned status ${resp.status}. Falling back to direct CRM POST...`);
+  } catch (err) {
+    console.error("Proxy CRM submission failed/errored. Falling back to direct CRM POST...", err);
   }
 
-  // 3. Fallback form submission with mode: 'no-cors' if all else fails
+  // Fallback: Direct POST to submit_quote.php with form urlencoded
   try {
+    console.log("Executing fallback direct POST to http://stadochtradgard.se/dashboard/submit_quote.php...");
+
     const params = new URLSearchParams();
     Object.entries(formattedPayload).forEach(([k, v]) => {
-      if (typeof v === 'object' && v !== null) {
-        params.append(k, JSON.stringify(v));
-      } else {
-        params.append(k, String(v ?? ""));
-      }
+      params.append(k, String(v ?? ""));
     });
 
-    await fetch(LIVE_CRM_ENDPOINT, {
+    await fetch("http://stadochtradgard.se/dashboard/submit_quote.php", {
       method: "POST",
       mode: "no-cors",
       headers: {
@@ -201,69 +142,11 @@ const submitLeadToCRM = async (payload: FormValues) => {
       body: params.toString()
     });
 
-    return { result: "success", fallback: true };
+    console.log("Direct fallback POST completed successfully.");
+    return { success: true, fallback: true };
   } catch (fallbackErr) {
-    console.error("All CRM submission methods failed:", fallbackErr);
-    return { result: "error", message: String(fallbackErr) };
-  }
-};
-
-// Dedicated helper to update lead status and is_button_click in CRM without CORS errors
-const updateLeadInCRM = async (updateData: Record<string, any>) => {
-  console.log("Updating lead in CRM with is_button_click=yes...", updateData);
-
-  const targetId = updateData.customer_id || updateData.id || updateData.lead_id;
-
-  const payload = {
-    action: 4,
-    ...updateData,
-    customer_id: targetId,
-    id: targetId,
-    lead_id: targetId,
-    button_click: "yes",
-    is_button_click: "yes"
-  };
-
-  const isSameOriginCRM = typeof window !== "undefined" && window.location.hostname === "stadochtradgard.se";
-
-  // 1. Prefer same-origin proxy /api/update-lead (Never blocked by CORS on subdomains)
-  if (!isSameOriginCRM) {
-    try {
-      const proxyResp = await fetch("/api/update-lead", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-      if (proxyResp.ok) {
-        const data = await proxyResp.json();
-        console.log("Lead update succeeded via /api/update-lead:", data);
-        return data;
-      }
-    } catch (proxyErr) {
-      console.warn("Proxy /api/update-lead failed, attempting direct update:", proxyErr);
-    }
-  }
-
-  // 2. Direct JSON POST only if on same origin (stadochtradgard.se)
-  if (isSameOriginCRM) {
-    try {
-      const directResp = await fetch(LIVE_UPDATE_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json, text/plain, */*"
-        },
-        body: JSON.stringify(payload)
-      });
-      if (directResp.ok) {
-        console.log("Direct update_data POST succeeded");
-      }
-    } catch (directErr) {
-      console.warn("Direct update_data POST failed:", directErr);
-    }
+    console.error("Direct CRM fallback POST failed:", fallbackErr);
+    throw fallbackErr;
   }
 };
 
@@ -520,24 +403,11 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         comment: fullMessage,
         suggested_price: flyttPriceInfo.priceAfterRUT,
         suggestedPrice: flyttPriceInfo.formattedPrice,
-        price_details: {
-          price_after_rut: flyttPriceInfo.priceAfterRUT,
-          price_before_rut: flyttPriceInfo.priceBeforeRUT,
-          formatted_price: flyttPriceInfo.formattedPrice,
-          sqm_used: flyttPriceInfo.sqmUsed
-        },
-        addons,
-        addon_flags: {
-          sprojs_fonster: sprojsFonster,
-          inglasad_altan: inglasadAltan,
-          oppningsbara_fonster: oppningsbaraFonster
-        },
         button_click: "no",
         is_button_click: "no",
         user_agent: navigator.userAgent,
         user_type: "Privatperson",
-        service_type: "Flyttstädning",
-        form: "Flyttstädning",
+        service_type: "Moving cleaning",
         utm_source: utmParams.utm_source,
         utm_medium: utmParams.utm_medium,
         utm_campaign: utmParams.utm_campaign,
@@ -552,12 +422,9 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
       submitLeadToCRM(payload)
         .then((data) => {
           console.log("Step 3 CRM submission success:", data);
-          const retrievedId = data?.id || data?.customer_id || data?.data?.id || data?.data?.customer_id;
+          const retrievedId = data?.id || data?.data?.id || data?.data?.customer_id;
           if (retrievedId) {
             setCustomerId(retrievedId);
-            try {
-              sessionStorage.setItem("stadochtradgard_lead_id", String(retrievedId));
-            } catch (e) {}
           }
           if (!hasFiredLeadEvent) {
             pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
@@ -616,17 +483,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
       const gclidVal = utmParams.gclid || new URLSearchParams(window.location.search).get("gclid") || "";
       const fbclidVal = utmParams.fbclid || new URLSearchParams(window.location.search).get("fbclid") || "";
 
-      let leadIdToUse = customerId;
-      if (!leadIdToUse && typeof window !== "undefined") {
-        try {
-          const stored = sessionStorage.getItem("stadochtradgard_lead_id");
-          if (stored) leadIdToUse = stored;
-        } catch (e) {}
-      }
-
       const payload: FormValues = {
-        ...(leadIdToUse ? { id: leadIdToUse, customer_id: leadIdToUse } : {}),
-        action: 4,
         name,
         phone,
         email,
@@ -641,24 +498,11 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         comment: fullMessage,
         suggested_price: flyttPriceInfo.priceAfterRUT,
         suggestedPrice: flyttPriceInfo.formattedPrice,
-        price_details: {
-          price_after_rut: flyttPriceInfo.priceAfterRUT,
-          price_before_rut: flyttPriceInfo.priceBeforeRUT,
-          formatted_price: flyttPriceInfo.formattedPrice,
-          sqm_used: flyttPriceInfo.sqmUsed
-        },
-        addons,
-        addon_flags: {
-          sprojs_fonster: sprojsFonster,
-          inglasad_altan: inglasadAltan,
-          oppningsbara_fonster: oppningsbaraFonster
-        },
         button_click: "yes",
         is_button_click: "yes",
         user_agent: navigator.userAgent,
         user_type: "Privatperson",
-        service_type: "Flyttstädning",
-        form: "Flyttstädning",
+        service_type: "Moving cleaning",
         utm_source: utmParams.utm_source,
         utm_medium: utmParams.utm_medium,
         utm_campaign: utmParams.utm_campaign,
@@ -668,59 +512,39 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         fbclid: fbclidVal
       };
 
-      console.log("Submitting final payload to CRM (button_click=yes, is_button_click=yes)...", payload);
+      console.log("Submitting final payload to CRM (button_click=yes)...", payload);
 
       const data = await submitLeadToCRM(payload);
       console.log("CRM submission response:", data);
 
-      const resolvedId = leadIdToUse || data?.id || data?.customer_id || data?.data?.id || data?.data?.customer_id;
-      if (resolvedId) {
-        setCustomerId(resolvedId);
-        try {
-          sessionStorage.setItem("stadochtradgard_lead_id", String(resolvedId));
-        } catch (e) {}
+      const idToUpdate = customerId || data?.id || data?.data?.id || data?.data?.customer_id;
+      if (idToUpdate) {
+        fetch("/api/update-lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: 4,
+            customer_id: idToUpdate,
+            name,
+            email,
+            phone,
+            square_meter: parseInt(squareMeter) || 70,
+            city,
+            comment: fullMessage,
+            message: fullMessage,
+            button_click: "yes",
+            is_button_click: "yes",
+            user_agent: navigator.userAgent,
+            utm_source: utmParams.utm_source || "",
+            utm_medium: utmParams.utm_medium || "",
+            utm_campaign: utmParams.utm_campaign || "",
+            utm_term: utmParams.utm_term || "",
+            utm_content: utmParams.utm_content || "",
+            gclid: gclidVal,
+            fbclid: fbclidVal
+          })
+        }).catch(err => console.error("Update lead error:", err));
       }
-
-      // Explicitly trigger lead update to ensure is_button_click is set to "yes" in CRM
-      await updateLeadInCRM({
-        customer_id: resolvedId,
-        id: resolvedId,
-        service_type: "Flyttstädning",
-        form: "Flyttstädning",
-        name,
-        email,
-        phone,
-        square_meter: parseInt(squareMeter) || 70,
-        city,
-        address: address || city || "",
-        cleaning_date: cleaningDate,
-        move_date: cleaningDate,
-        comment: fullMessage,
-        message: fullMessage,
-        suggested_price: flyttPriceInfo.priceAfterRUT,
-        price_details: {
-          price_after_rut: flyttPriceInfo.priceAfterRUT,
-          price_before_rut: flyttPriceInfo.priceBeforeRUT,
-          formatted_price: flyttPriceInfo.formattedPrice,
-          sqm_used: flyttPriceInfo.sqmUsed
-        },
-        addons,
-        addon_flags: {
-          sprojs_fonster: sprojsFonster,
-          inglasad_altan: inglasadAltan,
-          oppningsbara_fonster: oppningsbaraFonster
-        },
-        button_click: "yes",
-        is_button_click: "yes",
-        user_agent: navigator.userAgent,
-        utm_source: utmParams.utm_source || "",
-        utm_medium: utmParams.utm_medium || "",
-        utm_campaign: utmParams.utm_campaign || "",
-        utm_term: utmParams.utm_term || "",
-        utm_content: utmParams.utm_content || "",
-        gclid: gclidVal,
-        fbclid: fbclidVal
-      });
 
       if (!hasFiredLeadEvent) {
         pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
@@ -1289,8 +1113,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
           </div>
 
           <input type="hidden" name="suggested_price" id="suggested_price" value={flyttPriceInfo.formattedPrice} />
-          <input type="hidden" name="button_click" id="button_click" value="yes" />
-          <input type="hidden" name="is_button_click" id="is_button_click" value="yes" />
+          <input type="hidden" name="button_click" id="button_click" value="1" />
 
           {/* Single Strong CTA Button */}
           <button
