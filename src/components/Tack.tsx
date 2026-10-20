@@ -9,24 +9,9 @@ interface TackProps {
 
 export default function Tack({ serviceType, cityName, onGoBack }: TackProps) {
   useEffect(() => {
-    // Notify dataLayer of confirmation page view
-    const win = window as any;
-    win.dataLayer = win.dataLayer || [];
-    win.dataLayer.push({
-      event: 'booking_confirmation_view',
-      service: serviceType || 'Flyttstädning',
-      city: cityName || 'Borås',
-      timestamp: new Date().toISOString()
-    });
-
-    console.log("dataLayer.push executed on /tack view: booking_confirmation_view logged.", {
-      service: serviceType,
-      city: cityName
-    });
-
     // Scroll to top automatically
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [serviceType, cityName]);
+  }, []);
 
   const readableService = {
     flytt: "Flyttstädning",
