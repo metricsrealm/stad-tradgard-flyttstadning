@@ -9,17 +9,17 @@ interface TackProps {
 
 export default function Tack({ serviceType, cityName, onGoBack }: TackProps) {
   useEffect(() => {
-    // Inject the final generate_lead event to the dataLayer on mounting the /tack view
+    // Notify dataLayer of confirmation page view
     const win = window as any;
     win.dataLayer = win.dataLayer || [];
     win.dataLayer.push({
-      event: 'generate_lead',
+      event: 'booking_confirmation_view',
       service: serviceType || 'Flyttstädning',
       city: cityName || 'Borås',
       timestamp: new Date().toISOString()
     });
 
-    console.log("dataLayer.push executed on /tack view: generate_lead event logged.", {
+    console.log("dataLayer.push executed on /tack view: booking_confirmation_view logged.", {
       service: serviceType,
       city: cityName
     });

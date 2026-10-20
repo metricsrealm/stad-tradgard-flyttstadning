@@ -10,7 +10,7 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // API router - Proxy quote submissions to http://stadochtradgard.se/dashboard/submit_quote.php
+  // API router - Proxy submissions to https://stadochtradgard.se/dashboard/submit_form
   app.post("/api/submit-lead", async (req, res) => {
     try {
       const incomingUa = (req.headers["user-agent"] as string) || "";
@@ -37,26 +37,32 @@ async function startServer() {
         priceNum = isNaN(parsed) ? 0 : parsed;
       }
 
-      // Sanitize move_date to prevent 400 rejection from PHP server if date is in the past
       let moveDate = body.move_date || body.cleaning_date || body.cleaningDate || "";
-      if (moveDate) {
-        try {
-          const parsedDate = new Date(moveDate);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          if (isNaN(parsedDate.getTime()) || parsedDate < today) {
-            console.log("Move date was in the past or invalid:", moveDate, "- setting to empty for CRM submission.");
-            moveDate = "";
-          }
-        } catch {
-          moveDate = "";
-        }
-      }
 
       const clientUserAgent = body.user_agent || incomingUa || userAgent;
       const fullComment = body.comment || body.message || "";
 
+      // Normalize service_type to one of: Fönsterputsning (or window_cleaning), Hemstäd, Flyttstädning, Företagskunder
+      let serviceType = "Flyttstädning";
+      const rawService = String(body.service_type || body.serviceType || "").toLowerCase();
+      if (rawService.includes("fönster") || rawService.includes("fonster") || rawService.includes("window")) {
+        serviceType = "Fönsterputsning";
+      } else if (rawService.includes("hem") || rawService.includes("home")) {
+        serviceType = "Hemstäd";
+      } else if (rawService.includes("företag") || rawService.includes("foretag") || rawService.includes("kontor") || rawService.includes("business")) {
+        serviceType = "Företagskunder";
+      } else {
+        serviceType = "Flyttstädning";
+      }
+
+      const targetId = body.id || body.customer_id;
+
+      // Everything else is forwarded, including nested objects and arrays
       const submitPayload = {
+        ...body,
+        ...(targetId ? { id: targetId, customer_id: targetId } : {}),
+        service_type: serviceType,
+        form: body.form || "Flyttstädning",
         name: body.name || "",
         phone: body.phone || "",
         email: body.email || "",
@@ -64,6 +70,7 @@ async function startServer() {
         city: body.city || "",
         address: body.address || body.city || "",
         move_date: moveDate,
+        cleaning_date: moveDate,
         message: fullComment,
         comment: fullComment,
         suggested_price: priceNum,
@@ -71,37 +78,24 @@ async function startServer() {
         is_button_click: body.is_button_click || body.button_click || "no",
         user_agent: clientUserAgent,
         user_ip: body.user_ip || clientIp,
-        user_type: body.user_type || "Privatperson",
-        service_type: body.service_type || "Moving cleaning",
-        utm_source: body.utm_source || "",
-        utm_medium: body.utm_medium || "",
-        utm_campaign: body.utm_campaign || "",
-        utm_term: body.utm_term || "",
-        utm_content: body.utm_content || "",
-        gclid: body.gclid || "",
-        fbclid: body.fbclid || ""
+        user_type: body.user_type || "Privatperson"
       };
 
-      console.log("Submitting quote payload to http://stadochtradgard.se/dashboard/submit_quote.php:", submitPayload);
+      console.log("Submitting lead payload to https://stadochtradgard.se/dashboard/submit_form:", submitPayload);
 
-      const params = new URLSearchParams();
-      Object.entries(submitPayload).forEach(([key, val]) => {
-        params.append(key, String(val ?? ""));
-      });
-
-      const response = await fetch("http://stadochtradgard.se/dashboard/submit_quote.php", {
+      const response = await fetch("https://stadochtradgard.se/dashboard/submit_form", {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": "application/json",
           "User-Agent": userAgent,
           "Accept": "application/json, text/plain, */*",
           "Accept-Language": "sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7"
         },
-        body: params.toString()
+        body: JSON.stringify(submitPayload)
       });
 
       const responseText = await response.text();
-      console.log("CRM submit_quote response status:", response.status, responseText);
+      console.log("CRM submit_form response status:", response.status, responseText);
 
       let parsedData: any = null;
       try {
@@ -110,7 +104,36 @@ async function startServer() {
         // text response
       }
 
-      const leadId = parsedData?.id || parsedData?.customer_id || null;
+      const leadId = parsedData?.id || parsedData?.customer_id || targetId || null;
+
+      // If is_button_click is yes, also ensure update_data is notified
+      if ((body.is_button_click === "yes" || body.button_click === "yes") && leadId) {
+        try {
+          await fetch("https://stadochtradgard.se/dashboard/update_data", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "User-Agent": userAgent,
+              "Accept": "application/json, text/plain, */*"
+            },
+            body: JSON.stringify({
+              action: 4,
+              customer_id: leadId,
+              id: leadId,
+              is_button_click: "yes",
+              button_click: "yes",
+              name: body.name || "",
+              phone: body.phone || "",
+              email: body.email || "",
+              comment: fullComment,
+              message: fullComment
+            })
+          });
+          console.log(`Successfully updated is_button_click=yes on update_data for lead ${leadId}`);
+        } catch (updateErr) {
+          console.warn("Secondary update_data notification error:", updateErr);
+        }
+      }
 
       res.json({
         success: response.ok || response.status === 200 || parsedData?.result === "success",
@@ -120,12 +143,12 @@ async function startServer() {
         textExcerpt: responseText.substring(0, 300)
       });
     } catch (e: any) {
-      console.error("Error proxying submit_quote to PHP server:", e);
+      console.error("Error proxying to submit_form:", e);
       res.json({ success: false, error: e.message });
     }
   });
 
-  // API router - Proxy updates to http://stadochtradgard.se/dashboard/update_data.php
+  // API router - Proxy updates to https://stadochtradgard.se/dashboard/update_data
   app.post("/api/update-lead", async (req, res) => {
     try {
       const incomingUa = (req.headers["user-agent"] as string) || "";
@@ -145,9 +168,12 @@ async function startServer() {
         ? body.square_meter
         : (parseInt(body.square_meter || body.squareMeter) || 0);
 
+      const targetCustomerId = body.customer_id || body.id;
+
       const updatePayload: Record<string, any> = {
         action: body.action || 4,
-        customer_id: body.customer_id,
+        customer_id: targetCustomerId,
+        id: targetCustomerId,
         name: body.name || "",
         email: body.email || "",
         phone: body.phone || "",
@@ -155,8 +181,8 @@ async function startServer() {
         city: body.city || "",
         comment: fullComment,
         message: fullComment,
-        button_click: body.button_click || "yes",
-        is_button_click: body.is_button_click || body.button_click || "yes",
+        button_click: "yes",
+        is_button_click: "yes",
         user_agent: clientUserAgent,
         user_ip: body.user_ip || clientIp,
         utm_source: body.utm_source || "",
@@ -166,28 +192,22 @@ async function startServer() {
         fbclid: body.fbclid || ""
       };
 
-      console.log("Updating lead data via http://stadochtradgard.se/dashboard/update_data.php:", updatePayload);
+      console.log("Updating lead data via https://stadochtradgard.se/dashboard/update_data (JSON):", updatePayload);
 
-      const params = new URLSearchParams();
-      Object.entries(updatePayload).forEach(([key, val]) => {
-        if (val !== undefined && val !== null) {
-          params.append(key, String(val));
-        }
-      });
-
-      const response = await fetch("http://stadochtradgard.se/dashboard/update_data.php", {
+      // 1. Primary update via JSON to https://stadochtradgard.se/dashboard/update_data
+      const updateResponse = await fetch("https://stadochtradgard.se/dashboard/update_data", {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": "application/json",
           "User-Agent": userAgent,
-          "Accept": "*/*",
+          "Accept": "application/json, text/plain, */*",
           "Accept-Language": "sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7"
         },
-        body: params.toString()
+        body: JSON.stringify(updatePayload)
       });
 
-      const responseText = await response.text();
-      console.log("CRM update_data response status:", response.status, responseText);
+      const responseText = await updateResponse.text();
+      console.log("CRM update_data response status:", updateResponse.status, responseText.substring(0, 100));
 
       let parsedData = null;
       try {
@@ -196,14 +216,69 @@ async function startServer() {
         // text response
       }
 
+      // 2. Also forward to submit_form with is_button_click: "yes" as requested by user
+      try {
+        await fetch("https://stadochtradgard.se/dashboard/submit_form", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": userAgent,
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({
+            service_type: body.service_type || "Flyttstädning",
+            form: body.form || "Flyttstädning",
+            name: body.name || "",
+            phone: body.phone || "",
+            email: body.email || "",
+            id: targetCustomerId,
+            customer_id: targetCustomerId,
+            button_click: "yes",
+            is_button_click: "yes",
+            square_meter: sqmNum,
+            city: body.city || "",
+            comment: fullComment,
+            message: fullComment
+          })
+        });
+        console.log("Synchronized is_button_click=yes with submit_form endpoint");
+      } catch (submitErr) {
+        console.warn("Could not sync with submit_form:", submitErr);
+      }
+
+      // 3. Also dispatch x-www-form-urlencoded to http://stadochtradgard.se/dashboard/update_data.php
+      try {
+        const urlencodedParams = new URLSearchParams();
+        urlencodedParams.append("action", "4");
+        urlencodedParams.append("customer_id", String(targetCustomerId));
+        urlencodedParams.append("name", String(body.name || ""));
+        urlencodedParams.append("email", String(body.email || ""));
+        urlencodedParams.append("phone", String(body.phone || ""));
+        urlencodedParams.append("city", String(body.city || ""));
+        urlencodedParams.append("comment", String(fullComment));
+        urlencodedParams.append("message", String(fullComment));
+        urlencodedParams.append("button_click", "yes");
+        urlencodedParams.append("is_button_click", "yes");
+
+        fetch("http://stadochtradgard.se/dashboard/update_data.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": userAgent,
+          },
+          body: urlencodedParams.toString(),
+        }).catch(() => {});
+      } catch (e) {}
+
       res.json({
-        success: response.ok || response.status === 200,
-        status: response.status,
+        success: updateResponse.ok || updateResponse.status === 200,
+        status: updateResponse.status,
+        id: targetCustomerId,
         data: parsedData,
         textExcerpt: responseText.substring(0, 300)
       });
     } catch (e: any) {
-      console.error("Error proxying update_data to PHP server:", e);
+      console.error("Error proxying update_data to CRM:", e);
       res.json({ success: false, error: e.message });
     }
   });

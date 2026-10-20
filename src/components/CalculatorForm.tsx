@@ -27,17 +27,16 @@ const pushLeadToDataLayer = (
   emailVal: string,
   phoneVal: string,
   cityVal: string,
-  sqmVal: string,
-  freqVal: string
+  sqmVal: string
 ) => {
   try {
-    const dataLayer = (window as any).dataLayer || [];
+    (window as any).dataLayer = (window as any).dataLayer || [];
     const trimmedName = (nameVal || '').trim();
     const parts = trimmedName.split(/\s+/);
     const firstName = parts[0] || '';
     const lastName = parts.slice(1).join(' ') || '';
 
-    dataLayer.push({
+    (window as any).dataLayer.push({
       event: 'generate_lead',
       user_data: {
         email: (emailVal || '').trim().toLowerCase(),
@@ -50,23 +49,44 @@ const pushLeadToDataLayer = (
       },
       lead_details: {
         service_type: 'Flyttstädning',
-        square_meter: sqmVal || '',
-        city: cityVal || '',
-        frequency: freqVal || 'Engångsstädning'
+        square_meter: String(sqmVal || ''),
+        city: (cityVal || '').trim()
       }
     });
     console.log("Tracked 'generate_lead' event in dataLayer with user_data:", {
       event: 'generate_lead',
       user_data: {
-        email: emailVal,
-        phone_number: phoneVal,
+        email: (emailVal || '').trim().toLowerCase(),
+        phone_number: (phoneVal || '').trim(),
         first_name: firstName,
         last_name: lastName,
-        address: { city: cityVal }
+        address: { city: (cityVal || '').trim() }
+      },
+      lead_details: {
+        service_type: 'Flyttstädning',
+        square_meter: String(sqmVal || ''),
+        city: (cityVal || '').trim()
       }
     });
   } catch (err) {
     console.error("Error pushing lead event to dataLayer:", err);
+  }
+};
+
+// Push interested_for_booking event to GTM dataLayer on clicking [Boka flyttstädning]
+const pushInterestedForBookingToDataLayer = (cityVal: string) => {
+  try {
+    (window as any).dataLayer = (window as any).dataLayer || [];
+    const eventPayload: Record<string, any> = {
+      event: "interested_for_booking",
+      service: "flyttstädning",
+      city: (cityVal || '').trim(),
+      timestamp: new Date().toISOString()
+    };
+    (window as any).dataLayer.push(eventPayload);
+    console.log("Tracked 'interested_for_booking' event in dataLayer:", eventPayload);
+  } catch (err) {
+    console.error("Error pushing interested_for_booking event to dataLayer:", err);
   }
 };
 
@@ -327,7 +347,7 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
     setStep(2);
   };
 
-  // Handle Step 2 Submit (Kontakt)
+  // Handle Step 2 Submit (Kontakt) - Trigger for generate_lead event
   const handleStep2Submit = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: { [key: string]: string } = {};
@@ -355,6 +375,67 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
     }
 
     setErrors({});
+
+    // User filled the form and clicked [Nästa: Välj datum →] -> Fire generate_lead event
+    pushLeadToDataLayer(name, email, phone, city, squareMeter);
+    setHasFiredLeadEvent(true);
+
+    // Save lead details to CRM in background immediately
+    try {
+      const addons: string[] = [];
+      if (sprojsFonster) addons.push("Spröjsade fönster");
+      if (inglasadAltan) addons.push("Inglasad altan/balkong");
+      if (oppningsbaraFonster) addons.push("Öppningsbara fönster/4-sidor");
+      const fullMessage = addons.length > 0 
+        ? `Tillval: ${addons.join(', ')}`
+        : "";
+
+      const gclidVal = utmParams.gclid || new URLSearchParams(window.location.search).get("gclid") || "";
+      const fbclidVal = utmParams.fbclid || new URLSearchParams(window.location.search).get("fbclid") || "";
+
+      const payload: FormValues = {
+        name,
+        phone,
+        email,
+        square_meter: parseInt(squareMeter) || 70,
+        squareMeter: squareMeter || '70',
+        city,
+        address: address || city || "",
+        cleaningDate: cleaningDate || "",
+        cleaning_date: cleaningDate || "",
+        move_date: cleaningDate || "",
+        message: fullMessage,
+        comment: fullMessage,
+        suggested_price: flyttPriceInfo.priceAfterRUT,
+        suggestedPrice: flyttPriceInfo.formattedPrice,
+        button_click: "no",
+        is_button_click: "no",
+        user_agent: navigator.userAgent,
+        user_type: "Privatperson",
+        service_type: "Moving cleaning",
+        utm_source: utmParams.utm_source,
+        utm_medium: utmParams.utm_medium,
+        utm_campaign: utmParams.utm_campaign,
+        utm_term: utmParams.utm_term,
+        utm_content: utmParams.utm_content,
+        gclid: gclidVal,
+        fbclid: fbclidVal
+      };
+
+      submitLeadToCRM(payload)
+        .then((data) => {
+          const retrievedId = data?.id || data?.data?.id || data?.data?.customer_id;
+          if (retrievedId) {
+            setCustomerId(retrievedId);
+          }
+        })
+        .catch((err) => {
+          console.warn("Step 2 CRM background save notice:", err);
+        });
+    } catch (err) {
+      console.warn("Step 2 background lead save:", err);
+    }
+
     setStep(3);
   };
 
@@ -426,17 +507,9 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
           if (retrievedId) {
             setCustomerId(retrievedId);
           }
-          if (!hasFiredLeadEvent) {
-            pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
-            setHasFiredLeadEvent(true);
-          }
         })
         .catch((err) => {
           console.error("Step 3 CRM submission network failure:", err);
-          if (!hasFiredLeadEvent) {
-            pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
-            setHasFiredLeadEvent(true);
-          }
         });
     } catch (err) {
       console.error("Step 3 CRM submission exception:", err);
@@ -468,8 +541,11 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
     }
   }, [step]);
 
-  // Final submit (Step 5 -> Step 6)
+  // Final submit (Step 5 -> Step 6) when user clicks [Boka flyttstädning]
   const handleFinalSubmit = async () => {
+    // Fire interested_for_booking event to dataLayer
+    pushInterestedForBookingToDataLayer(city);
+
     setIsSubmitting(true);
     try {
       const addons: string[] = [];
@@ -546,19 +622,10 @@ export default function CalculatorForm({ initialService, initialCity, onSubmitSu
         }).catch(err => console.error("Update lead error:", err));
       }
 
-      if (!hasFiredLeadEvent) {
-        pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
-        setHasFiredLeadEvent(true);
-      }
-
       onSubmitSuccess('flytt', city);
       setStep(6);
     } catch (e) {
       console.error("Failed submitting final form fields", e);
-      if (!hasFiredLeadEvent) {
-        pushLeadToDataLayer(name, email, phone, city, squareMeter, 'Engångsstädning');
-        setHasFiredLeadEvent(true);
-      }
       onSubmitSuccess('flytt', city);
       setStep(6);
     } finally {
